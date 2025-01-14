@@ -44,8 +44,14 @@
 						"referenceName": "ds_LACEDemo",
 						"type": "DatasetReference",
 						"parameters": {
-							"SchemaName": "Source",
-							"TableName": "Employee"
+							"SchemaName": {
+								"value": "@pipeline().parameters.SourceSchemaName",
+								"type": "Expression"
+							},
+							"TableName": {
+								"value": "@pipeline().parameters.SourceTableName",
+								"type": "Expression"
+							}
 						}
 					}
 				],
@@ -55,12 +61,23 @@
 						"type": "DatasetReference",
 						"parameters": {
 							"Filesystem": "adlsfslacedccc",
-							"Directory": "bronze/LACEDemo/Source/2025/01/13/Employee/"
+							"Directory": {
+								"value": "@concat(\n    'bronze/LACEDemo/', \n    pipeline().parameters.SourceSchemaName,\n    '/', \n    pipeline().parameters.SourceTableName,  \n    '/', \n    formatDateTime(utcNow(), 'yyyy'), \n    '/', \n    formatDateTime(utcNow(), 'MM'), \n    '/', \n    formatDateTime(utcNow(), 'dd'), \n\n    '/'\n)",
+								"type": "Expression"
+							}
 						}
 					}
 				]
 			}
 		],
+		"parameters": {
+			"SourceSchemaName": {
+				"type": "string"
+			},
+			"SourceTableName": {
+				"type": "string"
+			}
+		},
 		"annotations": []
 	}
 }
