@@ -1,0 +1,22 @@
+{
+	"name": "Silver",
+	"properties": {
+		"Name": "Silver",
+		"EntityType": "DATABASE",
+		"Origin": {
+			"Type": "SPARK"
+		},
+		"Properties": {
+			"IsSyMSCDMDatabase": true
+		},
+		"Source": {
+			"Provider": "ADLS",
+			"Location": "abfss://adlsfslacedccc@adlslacedccc.dfs.core.windows.net/Silver",
+			"Properties": {
+				"FormatType": "parquet",
+				"LinkedServiceName": "synlacedccc-WorkspaceDefaultStorage"
+			}
+		}
+	},
+	"type": "DATABASE"
+}
