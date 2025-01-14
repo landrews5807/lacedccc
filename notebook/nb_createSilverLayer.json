@@ -18,7 +18,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "5d334c30-65d0-4527-99e3-f14d7eb88c97"
+				"spark.autotune.trackingId": "3c2c8979-052c-4ef4-befe-16584576d8bd"
 			}
 		},
 		"metadata": {
@@ -71,11 +71,22 @@
 			},
 			{
 				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
 				"source": [
-					"sqlQuery = f\"CREATE DATEBASE IF NOT EXISTS Silver LOCATION 'abfss://adlsfslacedccc@adlslacedccc.dfs.core.windows.net'\"\r\n",
-					""
+					"import json\r\n",
+					"from pyspark.sql.functions import *"
 				],
-				"execution_count": 9
+				"execution_count": 26
 			},
 			{
 				"cell_type": "code",
@@ -91,9 +102,46 @@
 					}
 				},
 				"source": [
-					"df = spark.read()"
+					"#spark.sql(\"DROP DATABASE IF EXISTS silver CASCADE\")"
 				],
-				"execution_count": null
+				"execution_count": 27
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"sqlQuery = \"CREATE DATABASE IF NOT EXISTS silver LOCATION 'abfss://adlsfslacedccc@adlslacedccc.dfs.core.windows.net/silver'\"\r\n",
+					"print(sqlQuery)\r\n",
+					"spark.sql(sqlQuery)\r\n",
+					""
+				],
+				"execution_count": 28
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": false
+				},
+				"source": [
+					"raw_file_name = \"abfss://adlsfslacedccc@adlslacedccc.dfs.core.windows.net/bronze/LACEDemo/Source/Employee/2025/01/14/Source.Employee.parquet\"\r\n",
+					"silver_file = \"abfss://adlsfslacedccc@adlslacedccc.dfs.core.windows.net/silver/lace_source_employee/\"\r\n",
+					"\r\n",
+					"df = spark.read.parquet(raw_file_name)\r\n",
+					"df = df.withColumn('LoadDateTime', expr(\"CURRENT_TIMESTAMP\"))\r\n",
+					"df = df.withColumn('SourceSystem', lit('LACE_Demo'))\r\n",
+					"\r\n",
+					"display(df)\r\n",
+					"df.write.option('path', silver_file).mode('overwrite').format('delta').saveAsTable('silver.lace_source_employee')"
+				],
+				"execution_count": 29
 			}
 		]
 	}
