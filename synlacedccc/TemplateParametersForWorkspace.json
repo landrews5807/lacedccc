@@ -1,0 +1,27 @@
+{
+	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"workspaceName": {
+			"value": "synlacedccc"
+		},
+		"ls_LACE_lacedemo_password": {
+			"value": ""
+		},
+		"synlacedccc-WorkspaceDefaultSqlServer_connectionString": {
+			"value": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=tcp:synlacedccc.sql.azuresynapse.net,1433;Initial Catalog=@{linkedService().DBName}"
+		},
+		"ls_LACE_lacedemo_properties_typeProperties_server": {
+			"value": "laceserver.database.windows.net"
+		},
+		"ls_LACE_lacedemo_properties_typeProperties_database": {
+			"value": "LACE_Demo"
+		},
+		"ls_LACE_lacedemo_properties_typeProperties_userName": {
+			"value": "Leslie"
+		},
+		"synlacedccc-WorkspaceDefaultStorage_properties_typeProperties_url": {
+			"value": "https://adlslacedccc.dfs.core.windows.net"
+		}
+	}
+}
