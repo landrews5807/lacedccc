@@ -17,7 +17,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "98672341-e26b-46b1-a914-5aa29079e863"
+				"spark.autotune.trackingId": "4267b198-b473-4d53-b9f4-72412d5a5d0f"
 			}
 		},
 		"metadata": {
@@ -25,7 +25,7 @@
 			"enableDebugMode": false,
 			"kernelspec": {
 				"name": "synapse_pyspark",
-				"display_name": "python"
+				"display_name": "Synapse PySpark"
 			},
 			"language_info": {
 				"name": "python"
@@ -62,9 +62,9 @@
 					}
 				},
 				"source": [
-					"spark.sql(\"DROP DATABASE IF EXISTS etlcontrol CASCADE\")"
+					"#spark.sql(\"DROP DATABASE IF EXISTS etlcontrol CASCADE\")"
 				],
-				"execution_count": null
+				"execution_count": 2
 			},
 			{
 				"cell_type": "code",
@@ -84,7 +84,7 @@
 					"print(sqlQuery)\r\n",
 					"spark.sql(sqlQuery)"
 				],
-				"execution_count": null
+				"execution_count": 3
 			},
 			{
 				"cell_type": "code",
@@ -103,7 +103,7 @@
 					"spark.sql(\"CREATE TABLE IF NOT EXISTS etlcontrol.IngestionList (IngestionListKey int, SourceName varchar(100),SourceSchemaName varchar(100),SourceTableName varchar(500),IsIncrementalLoad boolean,WatermarkColumn varchar(100),WatermarkValue varchar(100),PrimaryKey varchar(500), PipelineProcessingGroup varchar(100),IsActive boolean) USING DELTA LOCATION 'abfss://adlsfslacedccc@adlslacedccc.dfs.core.windows.net/etlcontrol/IngestionList' \")\r\n",
 					""
 				],
-				"execution_count": null
+				"execution_count": 4
 			},
 			{
 				"cell_type": "code",
@@ -119,15 +119,15 @@
 					}
 				},
 				"source": [
-					"spark.sql(\"INSERT INTO etlcontrol.IngestionList (IngestionListKey, SourceName,SourceSchemaName,SourceTableName,IsIncrementalLoad,WatermarkColumn,WatermarkValue,PrimaryKey varchar(500),PipelineProcessingGroup,IsActive) VALUES \\\r\n",
+					"spark.sql(\"INSERT INTO etlcontrol.IngestionList (IngestionListKey, SourceName,SourceSchemaName,SourceTableName,IsIncrementalLoad,WatermarkColumn,WatermarkValue,PrimaryKey,PipelineProcessingGroup,IsActive) VALUES \\\r\n",
 					"(1, 'LACEDemo',  'Source', 'Employee', false, NULL, NULL, NULL, 'LACEDemo', true ),\\\r\n",
 					"(2, 'LACEDemo',  'dbo', 'dimLocation',  false, NULL, NULL, NULL, 'LACEDemo', true), \\\r\n",
-					"(3, 'LACEDemo',  'dbo', 'SalesOrderDetail',  false, NULL, NULL, NULL, 'LACEDemo', true) \\\r\n",
-					"(4, 'LACEDemo', NULL, NULL, true, 'Watermark Column', 'Watermark Value', 'PK for Merge', 'LaceDemo', true)\r\n",
+					"(3, 'LACEDemo',  'dbo', 'SalesOrderDetail',  false, NULL, NULL, NULL, 'LACEDemo', true), \\\r\n",
+					"(4, 'LACEDemo', NULL, NULL, true, 'Watermark Column', 'Watermark Value', 'PK for Merge', 'LaceDemo', true) \\\r\n",
 					"\")\r\n",
 					""
 				],
-				"execution_count": null
+				"execution_count": 8
 			}
 		]
 	}
