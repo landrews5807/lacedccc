@@ -73,7 +73,9 @@
 							"dataset": {
 								"referenceName": "ds_syn_serverless_sql",
 								"type": "DatasetReference",
-								"parameters": {}
+								"parameters": {
+									"databaseName": "etlcontrol"
+								}
 							},
 							"firstRowOnly": false
 						}
@@ -112,7 +114,7 @@
 										"source": {
 											"type": "AzureSqlSource",
 											"sqlReaderQuery": {
-												"value": "@concat(\n    'SELECT * FROM ', \n    item().SourceSchemaName, \n    '.', \n    item().SourceTableName, \n    if(equals(item().IsIncremental, 'true'), \n        concat(' WHERE ', item().WatermarkColumnName, ' >= ', item().WatermarkColumnValue), \n        ''\n    )\n)",
+												"value": "@concat(\n    'SELECT * FROM ', \n    item().SourceSchemaName, \n    '.', \n    item().SourceTableName, \n    if(equals(item().IsIncrementalLoad, 'true'), \n        concat(' WHERE ', item().WatermarkColumnName, ' >= ', item().WatermarkColumnValue), \n        ''\n    )\n)",
 												"type": "Expression"
 											},
 											"queryTimeout": "02:00:00",
@@ -151,7 +153,7 @@
 											"parameters": {
 												"Filesystem": "adlsfslacedccc",
 												"Directory": {
-													"value": "@concat(\n    'bronze/',\n    item().SourceSystem, \n    item().SourceSchemaName,\n    '/', \n    item().SourceTableName,  \n    '/', \n    formatDateTime(utcNow(), 'yyyy'), \n    '/', \n    formatDateTime(utcNow(), 'MM'), \n    '/', \n    formatDateTime(utcNow(), 'dd'), \n\n    '/'\n)",
+													"value": "@concat(\n    'bronze/',\n    item().SourceName,\n    '/', \n    item().SourceSchemaName,\n    '/', \n    item().SourceTableName,  \n    '/', \n    formatDateTime(utcNow(), 'yyyy'), \n    '/', \n    formatDateTime(utcNow(), 'MM'), \n    '/', \n    formatDateTime(utcNow(), 'dd'), \n\n    '/'\n)",
 													"type": "Expression"
 												}
 											}
@@ -199,7 +201,17 @@
 				"linkedServiceName": {
 					"referenceName": "syn_serverless_sql",
 					"type": "LinkedServiceReference",
-					"parameters": {}
+					"parameters": {
+						"databaseName": {
+							"value": "@dataset().databaseName",
+							"type": "Expression"
+						}
+					}
+				},
+				"parameters": {
+					"databaseName": {
+						"type": "string"
+					}
 				},
 				"annotations": [],
 				"type": "AzureSqlTable",
@@ -399,7 +411,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "a975d024-86bd-46c6-9358-976bd9685bd1"
+						"spark.autotune.trackingId": "bfcc5f2b-b213-4b88-9432-3687798cde83"
 					}
 				},
 				"metadata": {
@@ -424,7 +436,8 @@
 						"sparkVersion": "3.4",
 						"nodeCount": 3,
 						"cores": 8,
-						"memory": 56
+						"memory": 56,
+						"automaticScaleJobs": false
 					},
 					"sessionKeepAliveTimeout": 30
 				},
@@ -448,7 +461,7 @@
 							"from datetime import datetime, date"
 						],
 						"outputs": [],
-						"execution_count": 45
+						"execution_count": 54
 					},
 					{
 						"cell_type": "code",
@@ -467,10 +480,11 @@
 							"#spark.sql(\"DROP DATABASE IF EXISTS silver CASCADE\")"
 						],
 						"outputs": [],
-						"execution_count": 46
+						"execution_count": 55
 					},
 					{
 						"cell_type": "code",
+						"metadata": {},
 						"source": [
 							"sqlQuery = \"CREATE DATABASE IF NOT EXISTS silver LOCATION 'abfss://adlsfslacedccc@adlslacedccc.dfs.core.windows.net/silver'\"\r\n",
 							"print(sqlQuery)\r\n",
@@ -478,7 +492,7 @@
 							""
 						],
 						"outputs": [],
-						"execution_count": 47
+						"execution_count": 56
 					},
 					{
 						"cell_type": "code",
@@ -498,10 +512,10 @@
 							"# Get today's date\r\n",
 							"today = datetime.now()\r\n",
 							"\r\n",
-							"# Extract year, month, and day\r\n",
-							"year_value = today.year\r\n",
-							"month_value = today.month\r\n",
-							"day_value = today.day\r\n",
+							"# Extract year, month, and day with leading zeros for month and day\r\n",
+							"year_value = today.strftime(\"%Y\")\r\n",
+							"month_value = today.strftime(\"%m\")\r\n",
+							"day_value = today.strftime(\"%d\")\r\n",
 							"\r\n",
 							"print(year_value, month_value, day_value)\r\n",
 							"\r\n",
@@ -510,38 +524,20 @@
 							"rows = df.collect()\r\n",
 							"\r\n",
 							"for row in rows:\r\n",
-							"    print(row.SourceName, row.SourceSchemaName, row.SourceTableName)\r\n",
-							"    raw_file_name = f\"abfss://adlsfslacedccc@adlslacedccc.dfs.core.windows.net/bronze/{row.SourceName}/{row.SourceSchemaName}/{row.SourceTableName}/{year_value}/{month_value}/{day_value}/{row.SourceSchemaName}.{row.SourceTableName}.parquet\"\r\n",
-							"    silver_file = f\"abfss://adlsfslacedccc@adlslacedccc.dfs.core.windows.net/silver/{row.SourceName}_{row.SourceSchemaName}_{row.SourceTableName}/\"\r\n",
+							"    if row.IsIncrementalLoad == 0:\r\n",
+							"        print(row.SourceName, row.SourceSchemaName, row.SourceTableName)\r\n",
+							"        raw_file_name = f\"abfss://adlsfslacedccc@adlslacedccc.dfs.core.windows.net/bronze/{row.SourceName}/{row.SourceSchemaName}/{row.SourceTableName}/{year_value}/{month_value}/{day_value}/*.parquet\"\r\n",
+							"        silver_file = f\"abfss://adlsfslacedccc@adlslacedccc.dfs.core.windows.net/silver/{row.SourceName}_{row.SourceSchemaName}_{row.SourceTableName}/\"\r\n",
 							"\r\n",
-							"    df = spark.read.parquet(raw_file_name)\r\n",
-							"    df = df.withColumn('LoadDateTime', expr(\"CURRENT_TIMESTAMP\"))\r\n",
-							"    df = df.withColumn('SourceSystem', lit('LACE_Demo'))\r\n",
-							"    df.write.option('path', silver_file).mode('overwrite').format('delta').saveAsTable('silver.{row.SourceName}_{row.SourceSchemaName}_{row.SourceTableName}')"
+							"        df = spark.read.parquet(raw_file_name)\r\n",
+							"        df = df.withColumn('LoadDateTime', expr(\"CURRENT_TIMESTAMP\"))\r\n",
+							"        df = df.withColumn('SourceSystem', lit('LACE_Demo'))\r\n",
+							"        df.write.option('path', silver_file).mode('overwrite').format('delta').saveAsTable(f\"silver.{row.SourceName}_{row.SourceSchemaName}_{row.SourceTableName}\")\r\n",
+							"    else:\r\n",
+							"        print(\"incremental load\")"
 						],
 						"outputs": [],
-						"execution_count": 48
-					},
-					{
-						"cell_type": "markdown",
-						"metadata": {
-							"nteract": {
-								"transient": {
-									"deleting": false
-								}
-							}
-						},
-						"source": [
-							"raw_file_name = \"abfss://adlsfslacedccc@adlslacedccc.dfs.core.windows.net/bronze/LACEDemo/Source/Employee/2025/01/14/Source.Employee.parquet\"\r\n",
-							"silver_file = \"abfss://adlsfslacedccc@adlslacedccc.dfs.core.windows.net/silver/lace_source_employee/\"\r\n",
-							"\r\n",
-							"df = spark.read.parquet(raw_file_name)\r\n",
-							"df = df.withColumn('LoadDateTime', expr(\"CURRENT_TIMESTAMP\"))\r\n",
-							"df = df.withColumn('SourceSystem', lit('LACE_Demo'))\r\n",
-							"\r\n",
-							"display(df)\r\n",
-							"df.write.option('path', silver_file).mode('overwrite').format('delta').saveAsTable('silver.lace_source_employee')"
-						]
+						"execution_count": 60
 					}
 				]
 			},
