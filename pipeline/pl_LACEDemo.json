@@ -90,17 +90,7 @@
 							"inputs": [
 								{
 									"referenceName": "ds_LACEDemo",
-									"type": "DatasetReference",
-									"parameters": {
-										"SchemaName": {
-											"value": "@pipeline().parameters.SourceSchemaName",
-											"type": "Expression"
-										},
-										"TableName": {
-											"value": "@pipeline().parameters.SourceTableName",
-											"type": "Expression"
-										}
-									}
+									"type": "DatasetReference"
 								}
 							],
 							"outputs": [
@@ -121,14 +111,6 @@
 				}
 			}
 		],
-		"parameters": {
-			"SourceSchemaName": {
-				"type": "string"
-			},
-			"SourceTableName": {
-				"type": "string"
-			}
-		},
 		"annotations": []
 	}
 }
