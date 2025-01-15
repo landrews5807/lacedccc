@@ -3,8 +3,8 @@
 	"properties": {
 		"activities": [
 			{
-				"name": "Copy data from LACEDemo database",
-				"type": "Copy",
+				"name": "Lookup list of tables to ingest from etlcontrol",
+				"type": "Lookup",
 				"dependsOn": [],
 				"policy": {
 					"timeout": "0.12:00:00",
@@ -17,57 +17,108 @@
 				"typeProperties": {
 					"source": {
 						"type": "AzureSqlSource",
+						"sqlReaderQuery": "SELECT * FROM etlcontrol.dbo.IngestionList where isActive = 1",
 						"queryTimeout": "02:00:00",
 						"partitionOption": "None"
 					},
-					"sink": {
-						"type": "ParquetSink",
-						"storeSettings": {
-							"type": "AzureBlobFSWriteSettings"
-						},
-						"formatSettings": {
-							"type": "ParquetWriteSettings"
-						}
+					"dataset": {
+						"referenceName": "ds_syn_serverless_sql",
+						"type": "DatasetReference"
 					},
-					"enableStaging": false,
-					"translator": {
-						"type": "TabularTranslator",
-						"typeConversion": true,
-						"typeConversionSettings": {
-							"allowDataTruncation": true,
-							"treatBooleanAsNumber": false
-						}
-					}
-				},
-				"inputs": [
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "ForEach1",
+				"type": "ForEach",
+				"dependsOn": [
 					{
-						"referenceName": "ds_LACEDemo",
-						"type": "DatasetReference",
-						"parameters": {
-							"SchemaName": {
-								"value": "@pipeline().parameters.SourceSchemaName",
-								"type": "Expression"
-							},
-							"TableName": {
-								"value": "@pipeline().parameters.SourceTableName",
-								"type": "Expression"
-							}
-						}
+						"activity": "Lookup list of tables to ingest from etlcontrol",
+						"dependencyConditions": [
+							"Succeeded"
+						]
 					}
 				],
-				"outputs": [
-					{
-						"referenceName": "ds_synapsestorage_parquet",
-						"type": "DatasetReference",
-						"parameters": {
-							"Filesystem": "adlsfslacedccc",
-							"Directory": {
-								"value": "@concat(\n    'bronze/LACEDemo/', \n    pipeline().parameters.SourceSchemaName,\n    '/', \n    pipeline().parameters.SourceTableName,  \n    '/', \n    formatDateTime(utcNow(), 'yyyy'), \n    '/', \n    formatDateTime(utcNow(), 'MM'), \n    '/', \n    formatDateTime(utcNow(), 'dd'), \n\n    '/'\n)",
-								"type": "Expression"
-							}
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Lookup list of tables to ingest from etlcontrol').output.value",
+						"type": "Expression"
+					},
+					"activities": [
+						{
+							"name": "Copy data from LACEDemo database",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderQuery": {
+										"value": "@concat(\n    'SELECT * FROM ', \n    item().SourceSchemaName, \n    '.', \n    item().SourceTableName, \n    if(equals(item().IsIncremental, 'true'), \n        concat(' WHERE ', item().WatermarkColumnName, ' >= ', item().WatermarkColumnValue), \n        ''\n    )\n)",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"sink": {
+									"type": "ParquetSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "ParquetWriteSettings"
+									}
+								},
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "ds_LACEDemo",
+									"type": "DatasetReference",
+									"parameters": {
+										"SchemaName": {
+											"value": "@pipeline().parameters.SourceSchemaName",
+											"type": "Expression"
+										},
+										"TableName": {
+											"value": "@pipeline().parameters.SourceTableName",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "ds_synapsestorage_parquet",
+									"type": "DatasetReference",
+									"parameters": {
+										"Filesystem": "adlsfslacedccc",
+										"Directory": {
+											"value": "@concat(\n    'bronze/',\n    item().SourceSystem, \n    item().SourceSchemaName,\n    '/', \n    item().SourceTableName,  \n    '/', \n    formatDateTime(utcNow(), 'yyyy'), \n    '/', \n    formatDateTime(utcNow(), 'MM'), \n    '/', \n    formatDateTime(utcNow(), 'dd'), \n\n    '/'\n)",
+											"type": "Expression"
+										}
+									}
+								}
+							]
 						}
-					}
-				]
+					]
+				}
 			}
 		],
 		"parameters": {

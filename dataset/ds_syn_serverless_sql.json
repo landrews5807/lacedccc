@@ -1,0 +1,12 @@
+{
+	"name": "ds_syn_serverless_sql",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "syn_serverless_sql",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": []
+	}
+}
