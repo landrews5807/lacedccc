@@ -18,7 +18,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "3c2c8979-052c-4ef4-befe-16584576d8bd"
+				"spark.autotune.trackingId": "a975d024-86bd-46c6-9358-976bd9685bd1"
 			}
 		},
 		"metadata": {
@@ -50,26 +50,6 @@
 		},
 		"cells": [
 			{
-				"cell_type": "markdown",
-				"metadata": {
-					"nteract": {
-						"transient": {
-							"deleting": false
-						}
-					}
-				},
-				"source": [
-					"import json\r\n",
-					"\r\n",
-					"CredentialProperties = mssparkutils.credentials.getPropertiesAll(\"WorkspaceSystemIdentity\")\r\n",
-					"CredentialProperties = json.loads(CredentialProperties)\r\n",
-					"storageLocation = CredentialProperties['Endpoint'].replace('https://', '')\r\n",
-					"storageContainer = 'adlsfslacedccc'\r\n",
-					"\r\n",
-					"print(f\"{storageLocation} and {storageContainer}\")"
-				]
-			},
-			{
 				"cell_type": "code",
 				"metadata": {
 					"jupyter": {
@@ -84,9 +64,10 @@
 				},
 				"source": [
 					"import json\r\n",
-					"from pyspark.sql.functions import *"
+					"from pyspark.sql.functions import *\r\n",
+					"from datetime import datetime, date"
 				],
-				"execution_count": 26
+				"execution_count": 45
 			},
 			{
 				"cell_type": "code",
@@ -104,7 +85,7 @@
 				"source": [
 					"#spark.sql(\"DROP DATABASE IF EXISTS silver CASCADE\")"
 				],
-				"execution_count": 27
+				"execution_count": 46
 			},
 			{
 				"cell_type": "code",
@@ -114,7 +95,7 @@
 					"spark.sql(sqlQuery)\r\n",
 					""
 				],
-				"execution_count": 28
+				"execution_count": 47
 			},
 			{
 				"cell_type": "code",
@@ -131,6 +112,42 @@
 					"collapsed": false
 				},
 				"source": [
+					"# Get today's date\r\n",
+					"today = datetime.now()\r\n",
+					"\r\n",
+					"# Extract year, month, and day\r\n",
+					"year_value = today.year\r\n",
+					"month_value = today.month\r\n",
+					"day_value = today.day\r\n",
+					"\r\n",
+					"print(year_value, month_value, day_value)\r\n",
+					"\r\n",
+					"df = spark.sql(\"SELECT * FROM etlcontrol.IngestionList where IsActive = true\")\r\n",
+					"\r\n",
+					"rows = df.collect()\r\n",
+					"\r\n",
+					"for row in rows:\r\n",
+					"    print(row.SourceName, row.SourceSchemaName, row.SourceTableName)\r\n",
+					"    raw_file_name = f\"abfss://adlsfslacedccc@adlslacedccc.dfs.core.windows.net/bronze/{row.SourceName}/{row.SourceSchemaName}/{row.SourceTableName}/{year_value}/{month_value}/{day_value}/{row.SourceSchemaName}.{row.SourceTableName}.parquet\"\r\n",
+					"    silver_file = f\"abfss://adlsfslacedccc@adlslacedccc.dfs.core.windows.net/silver/{row.SourceName}_{row.SourceSchemaName}_{row.SourceTableName}/\"\r\n",
+					"\r\n",
+					"    df = spark.read.parquet(raw_file_name)\r\n",
+					"    df = df.withColumn('LoadDateTime', expr(\"CURRENT_TIMESTAMP\"))\r\n",
+					"    df = df.withColumn('SourceSystem', lit('LACE_Demo'))\r\n",
+					"    df.write.option('path', silver_file).mode('overwrite').format('delta').saveAsTable('silver.{row.SourceName}_{row.SourceSchemaName}_{row.SourceTableName}')"
+				],
+				"execution_count": 48
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
 					"raw_file_name = \"abfss://adlsfslacedccc@adlslacedccc.dfs.core.windows.net/bronze/LACEDemo/Source/Employee/2025/01/14/Source.Employee.parquet\"\r\n",
 					"silver_file = \"abfss://adlsfslacedccc@adlslacedccc.dfs.core.windows.net/silver/lace_source_employee/\"\r\n",
 					"\r\n",
@@ -140,8 +157,7 @@
 					"\r\n",
 					"display(df)\r\n",
 					"df.write.option('path', silver_file).mode('overwrite').format('delta').saveAsTable('silver.lace_source_employee')"
-				],
-				"execution_count": 29
+				]
 			}
 		]
 	}
