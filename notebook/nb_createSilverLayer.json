@@ -18,7 +18,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "1d9b6e32-222f-485c-a12d-5fefe9a8c03d"
+				"spark.autotune.trackingId": "7e903a81-7bf0-400f-a9fd-d0a71453e63b"
 			}
 		},
 		"metadata": {
@@ -83,9 +83,9 @@
 					}
 				},
 				"source": [
-					"#spark.sql(\"DROP DATABASE IF EXISTS silver CASCADE\")"
+					"spark.sql(\"DROP DATABASE IF EXISTS silver CASCADE\")"
 				],
-				"execution_count": 55
+				"execution_count": null
 			},
 			{
 				"cell_type": "code",
