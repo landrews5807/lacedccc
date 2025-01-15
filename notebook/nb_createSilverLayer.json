@@ -18,7 +18,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "38eb8f24-d5ea-41e1-b4f7-ae8e0336806b"
+				"spark.autotune.trackingId": "16c82803-fb0c-4f16-ab02-470d81e7dd5f"
 			}
 		},
 		"metadata": {
@@ -67,7 +67,7 @@
 					"from pyspark.sql.functions import *\r\n",
 					"from datetime import datetime, date"
 				],
-				"execution_count": 49
+				"execution_count": 54
 			},
 			{
 				"cell_type": "code",
@@ -85,7 +85,7 @@
 				"source": [
 					"#spark.sql(\"DROP DATABASE IF EXISTS silver CASCADE\")"
 				],
-				"execution_count": 53
+				"execution_count": 55
 			},
 			{
 				"cell_type": "code",
@@ -95,7 +95,7 @@
 					"spark.sql(sqlQuery)\r\n",
 					""
 				],
-				"execution_count": 51
+				"execution_count": 56
 			},
 			{
 				"cell_type": "code",
@@ -115,10 +115,10 @@
 					"# Get today's date\r\n",
 					"today = datetime.now()\r\n",
 					"\r\n",
-					"# Extract year, month, and day\r\n",
-					"year_value = today.year\r\n",
-					"month_value = today.month\r\n",
-					"day_value = today.day\r\n",
+					"# Extract year, month, and day with leading zeros for month and day\r\n",
+					"year_value = today.strftime(\"%Y\")\r\n",
+					"month_value = today.strftime(\"%m\")\r\n",
+					"day_value = today.strftime(\"%d\")\r\n",
 					"\r\n",
 					"print(year_value, month_value, day_value)\r\n",
 					"\r\n",
@@ -127,16 +127,19 @@
 					"rows = df.collect()\r\n",
 					"\r\n",
 					"for row in rows:\r\n",
-					"    print(row.SourceName, row.SourceSchemaName, row.SourceTableName)\r\n",
-					"    raw_file_name = f\"abfss://adlsfslacedccc@adlslacedccc.dfs.core.windows.net/bronze/{row.SourceName}/{row.SourceSchemaName}/{row.SourceTableName}/{year_value}/{month_value}/{day_value}/{row.SourceSchemaName}.{row.SourceTableName}.parquet\"\r\n",
-					"    silver_file = f\"abfss://adlsfslacedccc@adlslacedccc.dfs.core.windows.net/silver/{row.SourceName}_{row.SourceSchemaName}_{row.SourceTableName}/\"\r\n",
+					"    if row.IsIncrementalLoad == 0:\r\n",
+					"        print(row.SourceName, row.SourceSchemaName, row.SourceTableName)\r\n",
+					"        raw_file_name = f\"abfss://adlsfslacedccc@adlslacedccc.dfs.core.windows.net/bronze/{row.SourceName}/{row.SourceSchemaName}/{row.SourceTableName}/{year_value}/{month_value}/{day_value}/*.parquet\"\r\n",
+					"        silver_file = f\"abfss://adlsfslacedccc@adlslacedccc.dfs.core.windows.net/silver/{row.SourceName}_{row.SourceSchemaName}_{row.SourceTableName}/\"\r\n",
 					"\r\n",
-					"    df = spark.read.parquet(raw_file_name)\r\n",
-					"    df = df.withColumn('LoadDateTime', expr(\"CURRENT_TIMESTAMP\"))\r\n",
-					"    df = df.withColumn('SourceSystem', lit('LACE_Demo'))\r\n",
-					"    df.write.option('path', silver_file).mode('overwrite').format('delta').saveAsTable(f\"silver.{row.SourceName}_{row.SourceSchemaName}_{row.SourceTableName}\")"
+					"        df = spark.read.parquet(raw_file_name)\r\n",
+					"        df = df.withColumn('LoadDateTime', expr(\"CURRENT_TIMESTAMP\"))\r\n",
+					"        df = df.withColumn('SourceSystem', lit('LACE_Demo'))\r\n",
+					"        df.write.option('path', silver_file).mode('overwrite').format('delta').saveAsTable(f\"silver.{row.SourceName}_{row.SourceSchemaName}_{row.SourceTableName}\")\r\n",
+					"    else:\r\n",
+					"        print(\"incremental load\")"
 				],
-				"execution_count": 52
+				"execution_count": 60
 			}
 		]
 	}
