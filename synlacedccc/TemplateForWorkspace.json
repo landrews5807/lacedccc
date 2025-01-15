@@ -28,6 +28,14 @@
 			"type": "string",
 			"defaultValue": "Leslie"
 		},
+		"syn_serverless_sql_properties_typeProperties_server": {
+			"type": "string",
+			"defaultValue": "synlacedccc-ondemand.sql.azuresynapse.net"
+		},
+		"syn_serverless_sql_properties_typeProperties_database": {
+			"type": "string",
+			"defaultValue": "@{linkedService().databaseName}"
+		},
 		"synlacedccc-WorkspaceDefaultStorage_properties_typeProperties_url": {
 			"type": "string",
 			"defaultValue": "https://adlslacedccc.dfs.core.windows.net"
@@ -38,23 +46,14 @@
 	},
 	"resources": [
 		{
-			"name": "[concat(parameters('workspaceName'), '/sparkpoolsm')]",
-			"type": "Microsoft.Synapse/workspaces/bigDataPools",
-			"apiVersion": "2019-06-01-preview",
-			"properties": {
-				"annotations": []
-			},
-			"dependsOn": []
-		},
-		{
 			"name": "[concat(parameters('workspaceName'), '/pl_LACEDemo')]",
 			"type": "Microsoft.Synapse/workspaces/pipelines",
 			"apiVersion": "2019-06-01-preview",
 			"properties": {
 				"activities": [
 					{
-						"name": "Copy data from LACEDemo database",
-						"type": "Copy",
+						"name": "Lookup list of tables to ingest from etlcontrol",
+						"type": "Lookup",
 						"dependsOn": [],
 						"policy": {
 							"timeout": "0.12:00:00",
@@ -67,48 +66,100 @@
 						"typeProperties": {
 							"source": {
 								"type": "AzureSqlSource",
+								"sqlReaderQuery": "SELECT * FROM etlcontrol.dbo.IngestionList where isActive = 1",
 								"queryTimeout": "02:00:00",
 								"partitionOption": "None"
 							},
-							"sink": {
-								"type": "ParquetSink",
-								"storeSettings": {
-									"type": "AzureBlobFSWriteSettings"
-								},
-								"formatSettings": {
-									"type": "ParquetWriteSettings"
-								}
-							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "ds_LACEDemo",
+							"dataset": {
+								"referenceName": "ds_syn_serverless_sql",
 								"type": "DatasetReference",
-								"parameters": {
-									"SchemaName": "Source",
-									"TableName": "Employee"
-								}
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "ForEach1",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Lookup list of tables to ingest from etlcontrol",
+								"dependencyConditions": [
+									"Succeeded"
+								]
 							}
 						],
-						"outputs": [
-							{
-								"referenceName": "ds_synapsestorage_parquet",
-								"type": "DatasetReference",
-								"parameters": {
-									"Filesystem": "adlsfslacedccc",
-									"Directory": "bronze/LACEDemo/Source/2025/01/13/Employee/"
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Lookup list of tables to ingest from etlcontrol').output.value",
+								"type": "Expression"
+							},
+							"activities": [
+								{
+									"name": "Copy data from LACEDemo database",
+									"type": "Copy",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "AzureSqlSource",
+											"sqlReaderQuery": {
+												"value": "@concat(\n    'SELECT * FROM ', \n    item().SourceSchemaName, \n    '.', \n    item().SourceTableName, \n    if(equals(item().IsIncremental, 'true'), \n        concat(' WHERE ', item().WatermarkColumnName, ' >= ', item().WatermarkColumnValue), \n        ''\n    )\n)",
+												"type": "Expression"
+											},
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"sink": {
+											"type": "ParquetSink",
+											"storeSettings": {
+												"type": "AzureBlobFSWriteSettings"
+											},
+											"formatSettings": {
+												"type": "ParquetWriteSettings"
+											}
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "ds_LACEDemo",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "ds_synapsestorage_parquet",
+											"type": "DatasetReference",
+											"parameters": {
+												"Filesystem": "adlsfslacedccc",
+												"Directory": {
+													"value": "@concat(\n    'bronze/',\n    item().SourceSystem, \n    item().SourceSchemaName,\n    '/', \n    item().SourceTableName,  \n    '/', \n    formatDateTime(utcNow(), 'yyyy'), \n    '/', \n    formatDateTime(utcNow(), 'MM'), \n    '/', \n    formatDateTime(utcNow(), 'dd'), \n\n    '/'\n)",
+													"type": "Expression"
+												}
+											}
+										}
+									]
 								}
-							}
-						]
+							]
+						}
 					}
 				],
 				"policy": {
@@ -117,6 +168,7 @@
 				"annotations": []
 			},
 			"dependsOn": [
+				"[concat(variables('workspaceId'), '/datasets/ds_syn_serverless_sql')]",
 				"[concat(variables('workspaceId'), '/datasets/ds_LACEDemo')]",
 				"[concat(variables('workspaceId'), '/datasets/ds_synapsestorage_parquet')]"
 			]
@@ -130,30 +182,32 @@
 					"referenceName": "ls_LACE_lacedemo",
 					"type": "LinkedServiceReference"
 				},
-				"parameters": {
-					"SchemaName": {
-						"type": "string"
-					},
-					"TableName": {
-						"type": "string"
-					}
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [],
+				"typeProperties": {}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/ls_LACE_lacedemo')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/ds_syn_serverless_sql')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "syn_serverless_sql",
+					"type": "LinkedServiceReference",
+					"parameters": {}
 				},
 				"annotations": [],
 				"type": "AzureSqlTable",
 				"schema": [],
-				"typeProperties": {
-					"schema": {
-						"value": "@dataset().SchemaName",
-						"type": "Expression"
-					},
-					"table": {
-						"value": "@dataset().TableName",
-						"type": "Expression"
-					}
-				}
+				"typeProperties": {}
 			},
 			"dependsOn": [
-				"[concat(variables('workspaceId'), '/linkedServices/ls_LACE_lacedemo')]"
+				"[concat(variables('workspaceId'), '/linkedServices/syn_serverless_sql')]"
 			]
 		},
 		{
@@ -177,7 +231,15 @@
 				"type": "Parquet",
 				"typeProperties": {
 					"location": {
-						"type": "AzureBlobFSLocation"
+						"type": "AzureBlobFSLocation",
+						"folderPath": {
+							"value": "@dataset().Directory",
+							"type": "Expression"
+						},
+						"fileSystem": {
+							"value": "@dataset().Filesystem",
+							"type": "Expression"
+						}
 					},
 					"compressionCodec": "snappy"
 				},
@@ -205,6 +267,34 @@
 						"type": "SecureString",
 						"value": "[parameters('ls_LACE_lacedemo_password')]"
 					}
+				},
+				"connectVia": {
+					"referenceName": "AutoResolveIntegrationRuntime",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/syn_serverless_sql')]",
+			"type": "Microsoft.Synapse/workspaces/linkedServices",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"parameters": {
+					"databaseName": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"type": "AzureSqlDatabase",
+				"typeProperties": {
+					"server": "[parameters('syn_serverless_sql_properties_typeProperties_server')]",
+					"database": "[parameters('syn_serverless_sql_properties_typeProperties_database')]",
+					"encrypt": "mandatory",
+					"trustServerCertificate": false,
+					"authenticationType": "SystemAssignedManagedIdentity"
 				},
 				"connectVia": {
 					"referenceName": "AutoResolveIntegrationRuntime",
@@ -288,7 +378,7 @@
 			"dependsOn": []
 		},
 		{
-			"name": "[concat(parameters('workspaceName'), '/nb_createBronzeTables')]",
+			"name": "[concat(parameters('workspaceName'), '/nb_createSilverLayer')]",
 			"type": "Microsoft.Synapse/workspaces/notebooks",
 			"apiVersion": "2019-06-01-preview",
 			"properties": {
@@ -309,7 +399,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "6973b62c-f99e-484b-9742-a703c4854c9f"
+						"spark.autotune.trackingId": "a975d024-86bd-46c6-9358-976bd9685bd1"
 					}
 				},
 				"metadata": {
@@ -334,8 +424,7 @@
 						"sparkVersion": "3.4",
 						"nodeCount": 3,
 						"cores": 8,
-						"memory": 56,
-						"automaticScaleJobs": false
+						"memory": 56
 					},
 					"sessionKeepAliveTimeout": 30
 				},
@@ -355,22 +444,203 @@
 						},
 						"source": [
 							"import json\r\n",
-							"\r\n",
-							"CredentialProperties = mssparkutils.credentials.getPropertiesAll(\"WorkspaceSystemIdentity\")\r\n",
-							"CredentialProperties = json.loads(CredentialProperties)\r\n",
-							"storageLocation = CredentialProperties['Endpoint'].replace('https://', '')\r\n",
-							"storageContainer = 'adlsfslacedccc'\r\n",
-							"\r\n",
-							"print(f\"{storageLocation} and {storageContainer}\")"
+							"from pyspark.sql.functions import *\r\n",
+							"from datetime import datetime, date"
 						],
 						"outputs": [],
-						"execution_count": 2
+						"execution_count": 45
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
 						"source": [
-							"sqlQuery = f\"CREATE DATEBASE IF NOT EXISTS Bronze LOCATION 'abfss://adlsfslacedccc"
+							"#spark.sql(\"DROP DATABASE IF EXISTS silver CASCADE\")"
+						],
+						"outputs": [],
+						"execution_count": 46
+					},
+					{
+						"cell_type": "code",
+						"source": [
+							"sqlQuery = \"CREATE DATABASE IF NOT EXISTS silver LOCATION 'abfss://adlsfslacedccc@adlslacedccc.dfs.core.windows.net/silver'\"\r\n",
+							"print(sqlQuery)\r\n",
+							"spark.sql(sqlQuery)\r\n",
+							""
+						],
+						"outputs": [],
+						"execution_count": 47
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							},
+							"collapsed": false
+						},
+						"source": [
+							"# Get today's date\r\n",
+							"today = datetime.now()\r\n",
+							"\r\n",
+							"# Extract year, month, and day\r\n",
+							"year_value = today.year\r\n",
+							"month_value = today.month\r\n",
+							"day_value = today.day\r\n",
+							"\r\n",
+							"print(year_value, month_value, day_value)\r\n",
+							"\r\n",
+							"df = spark.sql(\"SELECT * FROM etlcontrol.IngestionList where IsActive = true\")\r\n",
+							"\r\n",
+							"rows = df.collect()\r\n",
+							"\r\n",
+							"for row in rows:\r\n",
+							"    print(row.SourceName, row.SourceSchemaName, row.SourceTableName)\r\n",
+							"    raw_file_name = f\"abfss://adlsfslacedccc@adlslacedccc.dfs.core.windows.net/bronze/{row.SourceName}/{row.SourceSchemaName}/{row.SourceTableName}/{year_value}/{month_value}/{day_value}/{row.SourceSchemaName}.{row.SourceTableName}.parquet\"\r\n",
+							"    silver_file = f\"abfss://adlsfslacedccc@adlslacedccc.dfs.core.windows.net/silver/{row.SourceName}_{row.SourceSchemaName}_{row.SourceTableName}/\"\r\n",
+							"\r\n",
+							"    df = spark.read.parquet(raw_file_name)\r\n",
+							"    df = df.withColumn('LoadDateTime', expr(\"CURRENT_TIMESTAMP\"))\r\n",
+							"    df = df.withColumn('SourceSystem', lit('LACE_Demo'))\r\n",
+							"    df.write.option('path', silver_file).mode('overwrite').format('delta').saveAsTable('silver.{row.SourceName}_{row.SourceSchemaName}_{row.SourceTableName}')"
+						],
+						"outputs": [],
+						"execution_count": 48
+					},
+					{
+						"cell_type": "markdown",
+						"metadata": {
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"raw_file_name = \"abfss://adlsfslacedccc@adlslacedccc.dfs.core.windows.net/bronze/LACEDemo/Source/Employee/2025/01/14/Source.Employee.parquet\"\r\n",
+							"silver_file = \"abfss://adlsfslacedccc@adlslacedccc.dfs.core.windows.net/silver/lace_source_employee/\"\r\n",
+							"\r\n",
+							"df = spark.read.parquet(raw_file_name)\r\n",
+							"df = df.withColumn('LoadDateTime', expr(\"CURRENT_TIMESTAMP\"))\r\n",
+							"df = df.withColumn('SourceSystem', lit('LACE_Demo'))\r\n",
+							"\r\n",
+							"display(df)\r\n",
+							"df.write.option('path', silver_file).mode('overwrite').format('delta').saveAsTable('silver.lace_source_employee')"
+						]
+					}
+				]
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/nb_etlcontrolSetup')]",
+			"type": "Microsoft.Synapse/workspaces/notebooks",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"nbformat": 4,
+				"nbformat_minor": 2,
+				"sessionProperties": {
+					"driverMemory": "28g",
+					"driverCores": 4,
+					"executorMemory": "28g",
+					"executorCores": 4,
+					"numExecutors": 2,
+					"conf": {
+						"spark.dynamicAllocation.enabled": "false",
+						"spark.dynamicAllocation.minExecutors": "2",
+						"spark.dynamicAllocation.maxExecutors": "2",
+						"spark.autotune.trackingId": "0cf142b5-70c8-401a-8c02-99ed98a37d2f"
+					}
+				},
+				"metadata": {
+					"saveOutput": true,
+					"enableDebugMode": false,
+					"kernelspec": {
+						"name": "synapse_pyspark",
+						"display_name": "python"
+					},
+					"language_info": {
+						"name": "python"
+					},
+					"sessionKeepAliveTimeout": 30
+				},
+				"cells": [
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"sqlQuery = \"CREATE DATABASE IF NOT EXISTS etlcontrol LOCATION 'abfss://adlsfslacedccc@adlslacedccc.dfs.core.windows.net/etlcontrol'\"\r\n",
+							"print(sqlQuery)\r\n",
+							"spark.sql(sqlQuery)"
+						],
+						"outputs": [],
+						"execution_count": null
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"spark.sql(\"CREATE TABLE IF NOT EXISTS etlcontrol.IngestionList (IngestionListKey int, SourceName varchar(100),SourceSchemaName varchar(100),SourceTableName varchar(500),IsIncrementalLoad boolean,WatermarkColumn varchar(100),WatermarkValue varchar(100),PipelineProcessingGroup varchar(100),IsActive boolean) USING DELTA LOCATION 'abfss://adlsfslacedccc@adlslacedccc.dfs.core.windows.net/etlcontrol/IngestionList' \")\r\n",
+							""
+						],
+						"outputs": [],
+						"execution_count": null
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"spark.sql(\"INSERT INTO etlcontrol.IngestionList (IngestionListKey, SourceName,SourceSchemaName,SourceTableName,IsIncrementalLoad,WatermarkColumn,WatermarkValue,PipelineProcessingGroup,IsActive) VALUES \\\r\n",
+							"(1, 'LACEDemo',  'Source', 'Employee', false, NULL, NULL, 'LACEDemo', true ),\\\r\n",
+							"(2, 'LACEDemo',  'dbo', 'dimLocation',  false, NULL, NULL, 'LACEDemo', true), \\\r\n",
+							"(3, 'LACEDemo',  'dbo', 'SalesOrderDetail',  false, NULL, NULL, 'LACEDemo', true)\"\r\n",
+							")\r\n",
+							""
 						],
 						"outputs": [],
 						"execution_count": null
