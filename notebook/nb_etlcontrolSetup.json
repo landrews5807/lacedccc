@@ -3,17 +3,21 @@
 	"properties": {
 		"nbformat": 4,
 		"nbformat_minor": 2,
+		"bigDataPool": {
+			"referenceName": "sparkpoolmed",
+			"type": "BigDataPoolReference"
+		},
 		"sessionProperties": {
-			"driverMemory": "28g",
-			"driverCores": 4,
-			"executorMemory": "28g",
-			"executorCores": 4,
+			"driverMemory": "56g",
+			"driverCores": 8,
+			"executorMemory": "56g",
+			"executorCores": 8,
 			"numExecutors": 2,
 			"conf": {
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "0cf142b5-70c8-401a-8c02-99ed98a37d2f"
+				"spark.autotune.trackingId": "98672341-e26b-46b1-a914-5aa29079e863"
 			}
 		},
 		"metadata": {
@@ -26,9 +30,42 @@
 			"language_info": {
 				"name": "python"
 			},
+			"a365ComputeOptions": {
+				"id": "/subscriptions/1a8f2456-71f5-4894-9064-fbbd6756370d/resourceGroups/rg_lace/providers/Microsoft.Synapse/workspaces/synlacedccc/bigDataPools/sparkpoolmed",
+				"name": "sparkpoolmed",
+				"type": "Spark",
+				"endpoint": "https://synlacedccc.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/sparkpoolmed",
+				"auth": {
+					"type": "AAD",
+					"authResource": "https://dev.azuresynapse.net"
+				},
+				"sparkVersion": "3.4",
+				"nodeCount": 3,
+				"cores": 8,
+				"memory": 56,
+				"automaticScaleJobs": false
+			},
 			"sessionKeepAliveTimeout": 30
 		},
 		"cells": [
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"spark.sql(\"DROP DATABASE IF EXISTS etlcontrol CASCADE\")"
+				],
+				"execution_count": null
+			},
 			{
 				"cell_type": "code",
 				"metadata": {
@@ -63,7 +100,7 @@
 					}
 				},
 				"source": [
-					"spark.sql(\"CREATE TABLE IF NOT EXISTS etlcontrol.IngestionList (IngestionListKey int, SourceName varchar(100),SourceSchemaName varchar(100),SourceTableName varchar(500),IsIncrementalLoad boolean,WatermarkColumn varchar(100),WatermarkValue varchar(100),PipelineProcessingGroup varchar(100),IsActive boolean) USING DELTA LOCATION 'abfss://adlsfslacedccc@adlslacedccc.dfs.core.windows.net/etlcontrol/IngestionList' \")\r\n",
+					"spark.sql(\"CREATE TABLE IF NOT EXISTS etlcontrol.IngestionList (IngestionListKey int, SourceName varchar(100),SourceSchemaName varchar(100),SourceTableName varchar(500),IsIncrementalLoad boolean,WatermarkColumn varchar(100),WatermarkValue varchar(100),PrimaryKey varchar(500), PipelineProcessingGroup varchar(100),IsActive boolean) USING DELTA LOCATION 'abfss://adlsfslacedccc@adlslacedccc.dfs.core.windows.net/etlcontrol/IngestionList' \")\r\n",
 					""
 				],
 				"execution_count": null
@@ -82,11 +119,12 @@
 					}
 				},
 				"source": [
-					"spark.sql(\"INSERT INTO etlcontrol.IngestionList (IngestionListKey, SourceName,SourceSchemaName,SourceTableName,IsIncrementalLoad,WatermarkColumn,WatermarkValue,PipelineProcessingGroup,IsActive) VALUES \\\r\n",
-					"(1, 'LACEDemo',  'Source', 'Employee', false, NULL, NULL, 'LACEDemo', true ),\\\r\n",
-					"(2, 'LACEDemo',  'dbo', 'dimLocation',  false, NULL, NULL, 'LACEDemo', true), \\\r\n",
-					"(3, 'LACEDemo',  'dbo', 'SalesOrderDetail',  false, NULL, NULL, 'LACEDemo', true)\"\r\n",
-					")\r\n",
+					"spark.sql(\"INSERT INTO etlcontrol.IngestionList (IngestionListKey, SourceName,SourceSchemaName,SourceTableName,IsIncrementalLoad,WatermarkColumn,WatermarkValue,PrimaryKey varchar(500),PipelineProcessingGroup,IsActive) VALUES \\\r\n",
+					"(1, 'LACEDemo',  'Source', 'Employee', false, NULL, NULL, NULL, 'LACEDemo', true ),\\\r\n",
+					"(2, 'LACEDemo',  'dbo', 'dimLocation',  false, NULL, NULL, NULL, 'LACEDemo', true), \\\r\n",
+					"(3, 'LACEDemo',  'dbo', 'SalesOrderDetail',  false, NULL, NULL, NULL, 'LACEDemo', true) \\\r\n",
+					"(4, 'LACEDemo', NULL, NULL, true, 'Watermark Column', 'Watermark Value', 'PK for Merge', 'LaceDemo', true)\r\n",
+					"\")\r\n",
 					""
 				],
 				"execution_count": null
