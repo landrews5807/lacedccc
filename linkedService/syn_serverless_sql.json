@@ -1,11 +1,16 @@
 {
 	"name": "syn_serverless_sql",
 	"properties": {
+		"parameters": {
+			"databaseName": {
+				"type": "String"
+			}
+		},
 		"annotations": [],
 		"type": "AzureSqlDatabase",
 		"typeProperties": {
 			"server": "synlacedccc-ondemand.sql.azuresynapse.net",
-			"database": "etlcontrol",
+			"database": "@{linkedService().databaseName}",
 			"encrypt": "mandatory",
 			"trustServerCertificate": false,
 			"authenticationType": "SystemAssignedManagedIdentity"
