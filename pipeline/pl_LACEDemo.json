@@ -65,7 +65,7 @@
 								"source": {
 									"type": "AzureSqlSource",
 									"sqlReaderQuery": {
-										"value": "@concat(\n    'SELECT * FROM ', \n    item().SourceSchemaName, \n    '.', \n    item().SourceTableName, \n    if(equals(item().IsIncremental, 'true'), \n        concat(' WHERE ', item().WatermarkColumnName, ' >= ', item().WatermarkColumnValue), \n        ''\n    )\n)",
+										"value": "@concat(\n    'SELECT * FROM ', \n    item().SourceSchemaName, \n    '.', \n    item().SourceTableName, \n    if(equals(item().IsIncrementalLoad, 'true'), \n        concat(' WHERE ', item().WatermarkColumnName, ' >= ', item().WatermarkColumnValue), \n        ''\n    )\n)",
 										"type": "Expression"
 									},
 									"queryTimeout": "02:00:00",
