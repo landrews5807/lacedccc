@@ -103,7 +103,7 @@
 									"parameters": {
 										"Filesystem": "adlsfslacedccc",
 										"Directory": {
-											"value": "@concat(\n    'bronze/',\n    item().SourceSystem, \n    item().SourceSchemaName,\n    '/', \n    item().SourceTableName,  \n    '/', \n    formatDateTime(utcNow(), 'yyyy'), \n    '/', \n    formatDateTime(utcNow(), 'MM'), \n    '/', \n    formatDateTime(utcNow(), 'dd'), \n\n    '/'\n)",
+											"value": "@concat(\n    'bronze/',\n    item().SourceName,\n    '/', \n    item().SourceSchemaName,\n    '/', \n    item().SourceTableName,  \n    '/', \n    formatDateTime(utcNow(), 'yyyy'), \n    '/', \n    formatDateTime(utcNow(), 'MM'), \n    '/', \n    formatDateTime(utcNow(), 'dd'), \n\n    '/'\n)",
 											"type": "Expression"
 										}
 									}
