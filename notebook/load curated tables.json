@@ -1,0 +1,358 @@
+{
+	"name": "load curated tables",
+	"properties": {
+		"folder": {
+			"name": "DataLakeHydrator"
+		},
+		"nbformat": 4,
+		"nbformat_minor": 2,
+		"bigDataPool": {
+			"referenceName": "HydratorPool",
+			"type": "BigDataPoolReference"
+		},
+		"sessionProperties": {
+			"driverMemory": "28g",
+			"driverCores": 4,
+			"executorMemory": "28g",
+			"executorCores": 4,
+			"numExecutors": 1,
+			"runAsWorkspaceSystemIdentity": false,
+			"conf": {
+				"spark.dynamicAllocation.enabled": "true",
+				"spark.dynamicAllocation.minExecutors": "1",
+				"spark.dynamicAllocation.maxExecutors": "1",
+				"spark.autotune.trackingId": "a9ae7958-b12b-4789-b433-d06d207b7cdb"
+			}
+		},
+		"metadata": {
+			"saveOutput": true,
+			"enableDebugMode": false,
+			"kernelspec": {
+				"name": "synapse_pyspark",
+				"display_name": "Synapse PySpark"
+			},
+			"language_info": {
+				"name": "python"
+			},
+			"a365ComputeOptions": {
+				"id": "/subscriptions/af48a4da-3c2f-4753-a8be-19b32340369f/resourceGroups/PLN-EU2-MDPHydrator-RG/providers/Microsoft.Synapse/workspaces/pln-mdphydrator-syn/bigDataPools/HydratorPool",
+				"name": "HydratorPool",
+				"auth": {
+					"type": "AAD",
+					"authResource": "https://dev.azuresynapse.net"
+				}
+			},
+			"sessionKeepAliveTimeout": 30
+		},
+		"cells": [
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"%%configure -f\r\n",
+					"{ \r\n",
+					"    \"driverCores\": 2,\r\n",
+					"    \"driverMemory\": \"5g\",\r\n",
+					"    \"executorCores\": 2,\r\n",
+					"    \"executorMemory\": \"5g\",\r\n",
+					"    \"numExecutors\": 2,\r\n",
+					"    \"conf\":\r\n",
+					"    {\r\n",
+					"        \"spark.dynamicAllocation.enable\": \"true\",\r\n",
+					"        \"spark.dynamicAllocation.minExecutors\": \"1\",\r\n",
+					"        \"spark.dynamicAllocation.maxExecutors\":     \r\n",
+					"        { \r\n",
+					"            \"activityparameterName\": \"maxExecutor\", \r\n",
+					"            \"defaultValue\": \"2\"\r\n",
+					"        }\r\n",
+					"    }\r\n",
+					"} "
+				],
+				"execution_count": 2
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"#### Load parameters to variables"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"tags": [
+						"parameters"
+					]
+				},
+				"source": [
+					"# Inherit parameters from Synapse pipeline\r\n",
+					"\r\n",
+					"sourceName = ''\r\n",
+					"schemaName = ''\r\n",
+					"tableName = ''\r\n",
+					"primaryKeyColumnList = ''\r\n",
+					"storageAccountName = ''\r\n",
+					"transientContainer = ''\r\n",
+					"transientDirectory = ''\r\n",
+					"transientFilename = ''\r\n",
+					"curatedContainer = ''\r\n",
+					"curatedDirectory = ''\r\n",
+					"curatedFilename = ''\r\n",
+					"curatedFileCompressionType = ''\r\n",
+					"rawDatabaseName = ''\r\n",
+					"curatedDatabaseName = ''\r\n",
+					"hiveTimestampName = ''\r\n",
+					"isIncrementalFlag = ''\r\n",
+					"incrementalDeleteClause = ''"
+				],
+				"execution_count": 3
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"#### Setting partition sizes to impact performance.  Set the optimize flag parameter"
+				]
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"# partitions = 8\n",
+					"# spark.conf.set(\"spark.sql.shuffle.partitions\", str(partitions))"
+				],
+				"execution_count": 5
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"#### Create variables to dynamically set folder locations and table names"
+				]
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"schemaPlusTableName = sourceName + \"_\" + schemaName + \"_\" + tableName\n",
+					"stagingTableName = \"staging_\" + schemaPlusTableName\n",
+					"\n",
+					"\n",
+					"# remove any leading or trailing slashes (we will supply these)\n",
+					"transientContainer = transientContainer.strip(\"/\")\n",
+					"curatedContainer = curatedContainer.strip(\"/\")\n",
+					"transientDirectory = transientDirectory.strip(\"/\")\n",
+					"curatedDirectory = curatedDirectory.strip(\"/\")\n",
+					"transientFilename = transientFilename.strip(\"/\")\n",
+					"curatedFilename = curatedFilename.strip(\"/\")\n",
+					"\n",
+					"transientFileFullPath = 'abfss://' + transientContainer + '@' + storageAccountName + \".dfs.core.windows.net/\" + transientDirectory + \"/\" + transientFilename\n",
+					"curatedFileFullPath = 'abfss://' + curatedContainer + \"@\" + storageAccountName + \".dfs.core.windows.net/\" + curatedDirectory + '/'\n",
+					"\n",
+					"columnList = primaryKeyColumnList.replace(\" \", \"\").split(\",\")\n",
+					"\n",
+					"print(transientFileFullPath)\n",
+					"print(curatedFileFullPath)\n",
+					"print(stagingTableName)\n",
+					"print(schemaPlusTableName)\n",
+					"print(columnList)"
+				],
+				"execution_count": 4
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"#### Load a dataframe from the Raw Lake Database table.  \r\n",
+					"#### Search for any string columns and trim them. Truncate the string at a maximum of 8000 characters. Create a temp view"
+				]
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"from pyspark.sql.functions import *\n",
+					"\n",
+					"# Create df from raw table\n",
+					"autotrimStringsDF = spark.sql \\\n",
+					"  (f\"SELECT * FROM {rawDatabaseName}.{schemaPlusTableName}\")\n",
+					"\n",
+					"# Loop through each column in dataframe\n",
+					"for columnName, columnType in autotrimStringsDF.dtypes:\n",
+					"  # Trim each string column and truncate at 8000 characters. \n",
+					"  # If string column is an empty string '', set value to NULL\n",
+					"  # Important Note: SQL and PySpark count characters differently. Temporarily set to 7950 to avoid issue where SQL is unable to query more than 8000 characters.\n",
+					"  if columnType == \"string\":\n",
+					"    autotrimStringsDF = autotrimStringsDF.withColumn(columnName, when(trim(col(columnName)) == '', None).otherwise(substring(trim(col(columnName)),1,7950))) \n",
+					"\n",
+					"autotrimStringsDF.createOrReplaceTempView(stagingTableName)"
+				],
+				"execution_count": 5
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"#### This command will only be used when we run for the first time.  Checking if the database exists each time should not have much of a performance penalty"
+				]
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"sqlQuery = \"CREATE DATABASE IF NOT EXISTS \" + curatedDatabaseName\n",
+					"\n",
+					"print(sqlQuery)\n",
+					"\n",
+					"spark.sql(sqlQuery)"
+				],
+				"execution_count": null
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"#### Using the schema from the Lake Database table, use a CTAS statement to create a curated Delta table.  There WHERE 1 = 0 ensures we aren't loading data at this time"
+				]
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"createQuery = \"\"\"CREATE TABLE IF NOT EXISTS {3}.{0} \n",
+					"USING DELTA\n",
+					"LOCATION '{1}'\n",
+					"TBLPROPERTIES(delta.enableChangeDataFeed = True)\n",
+					"AS\n",
+					"SELECT * FROM {2} WHERE 1 = 0\"\"\".format(schemaPlusTableName, curatedFileFullPath, stagingTableName, curatedDatabaseName)\n",
+					"\n",
+					"print(createQuery)\n",
+					"\n",
+					"spark.sql(createQuery)"
+				],
+				"execution_count": null
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"#### Build the merge statement join criteria using the PKColumnList variable"
+				]
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"joinList = \"\"\n",
+					"for i in columnList:\n",
+					"  joinList += \"stage.\" + i + \" = \" + \"cur.\" + i + \" AND \"  \n",
+					"joinList = joinList[:-5]"
+				],
+				"execution_count": null
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"#### Run the curated merge statement which loads new rows and updates old rows using the matching column names\n",
+					"Doing a ROW_NUMBER to prevent possible duplicates if multiple files ended up in the stage folder"
+				]
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"if isIncrementalFlag != True:\n",
+					"  # Truncate/insert for non incremental tables\n",
+					"  truncateQuery = \"DELETE FROM {0}.{1}\".format(curatedDatabaseName, schemaPlusTableName)\n",
+					"\n",
+					"  print(truncateQuery)\n",
+					"\n",
+					"  spark.sql(truncateQuery)\n",
+					"  # Partition By Latest ETL Date\n",
+					"  insertQuery = \"\"\"\n",
+					"  WITH stg AS (\n",
+					"  SELECT\n",
+					"  *\n",
+					"  FROM\n",
+					"  {1}\n",
+					"  )\n",
+					"\n",
+					"  \n",
+					"  INSERT INTO {3}.{2}\n",
+					"  SELECT * FROM stg\n",
+					"  \"\"\".format(primaryKeyColumnList, stagingTableName, schemaPlusTableName, curatedDatabaseName)\n",
+					"  print(insertQuery)\n",
+					"\n",
+					"  spark.sql(insertQuery)\n",
+					"elif isIncrementalFlag == True and primaryKeyColumnList !=\"\":\n",
+					"  # Incremental Merge\n",
+					"  mergeQuery = \"\"\"\n",
+					"  WITH stg AS (\n",
+					"  SELECT\n",
+					"  *,\n",
+					"  ROW_NUMBER() OVER(PARTITION BY {0} ORDER BY {0} DESC) AS ROWNUM\n",
+					"  FROM\n",
+					"  {1}\n",
+					"  )\n",
+					"\n",
+					"  MERGE INTO {4}.{2} AS cur\n",
+					"  USING (SELECT * FROM stg WHERE ROWNUM=1) AS stage\n",
+					"  ON {3}\n",
+					"  WHEN MATCHED THEN \n",
+					"    UPDATE SET *\n",
+					"  WHEN NOT MATCHED THEN\n",
+					"    INSERT *\n",
+					"  \"\"\".format(primaryKeyColumnList, stagingTableName, schemaPlusTableName, joinList, curatedDatabaseName) #, hiveTimestampName\n",
+					"\n",
+					"  print(mergeQuery)\n",
+					"\n",
+					"  spark.sql(mergeQuery)\n",
+					"else:\n",
+					"    # Incremental Delete range for incoming data and insert\n",
+					"  deleteQuery = \"DELETE FROM {0}.{1} {2}\".format(curatedDatabaseName, schemaPlusTableName, incrementalDeleteClause)\n",
+					"\n",
+					"  print(deleteQuery)\n",
+					"\n",
+					"  spark.sql(deleteQuery)\n",
+					"  # Partition By Latest ETL Date\n",
+					"  insertQuery = \"\"\"\n",
+					"  WITH stg AS (\n",
+					"  SELECT\n",
+					"  *\n",
+					"  FROM\n",
+					"  {1}\n",
+					"  )\n",
+					"\n",
+					"  \n",
+					"  INSERT INTO {3}.{2}\n",
+					"  SELECT * FROM stg\n",
+					"  \"\"\".format(primaryKeyColumnList, stagingTableName, schemaPlusTableName, curatedDatabaseName)\n",
+					"  print(insertQuery)\n",
+					"\n",
+					"  spark.sql(insertQuery)"
+				],
+				"execution_count": null
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"#### Counting the # of records in the table"
+				]
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"countSQL = \"SELECT COUNT(1) AS Cnt FROM \" + curatedDatabaseName + \".\" + schemaPlusTableName\n",
+					"df = spark.sql(countSQL)\n",
+					"display(df)"
+				],
+				"execution_count": null
+			}
+		]
+	}
+}

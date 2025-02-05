@@ -1,0 +1,354 @@
+{
+	"name": "load raw tables",
+	"properties": {
+		"folder": {
+			"name": "DataLakeHydrator"
+		},
+		"nbformat": 4,
+		"nbformat_minor": 2,
+		"bigDataPool": {
+			"referenceName": "HydratorPool",
+			"type": "BigDataPoolReference"
+		},
+		"sessionProperties": {
+			"driverMemory": "28g",
+			"driverCores": 4,
+			"executorMemory": "28g",
+			"executorCores": 4,
+			"numExecutors": 2,
+			"conf": {
+				"spark.dynamicAllocation.enabled": "false",
+				"spark.dynamicAllocation.minExecutors": "1",
+				"spark.dynamicAllocation.maxExecutors": "1",
+				"spark.autotune.trackingId": "a22fd052-2f59-4775-83d2-031163b42331"
+			}
+		},
+		"metadata": {
+			"saveOutput": true,
+			"enableDebugMode": false,
+			"kernelspec": {
+				"name": "synapse_pyspark",
+				"display_name": "Synapse PySpark"
+			},
+			"language_info": {
+				"name": "python"
+			},
+			"a365ComputeOptions": {
+				"id": "/subscriptions/af48a4da-3c2f-4753-a8be-19b32340369f/resourceGroups/PLN-EU2-MDPHydrator-RG/providers/Microsoft.Synapse/workspaces/pln-mdphydrator-syn/bigDataPools/HydratorPool",
+				"name": "HydratorPool",
+				"auth": {
+					"type": "AAD",
+					"authResource": "https://dev.azuresynapse.net"
+				}
+			},
+			"sessionKeepAliveTimeout": 30
+		},
+		"cells": [
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"%%configure -f\r\n",
+					"{ \r\n",
+					"    \"driverCores\": 2,\r\n",
+					"    \"driverMemory\": \"5g\",\r\n",
+					"    \"executorCores\": 2,\r\n",
+					"    \"executorMemory\": \"5g\",\r\n",
+					"    \"numExecutors\": 2,\r\n",
+					"    \"conf\":\r\n",
+					"    {\r\n",
+					"        \"spark.dynamicAllocation.enable\": \"true\",\r\n",
+					"        \"spark.dynamicAllocation.minExecutors\": \"1\",\r\n",
+					"        \"spark.dynamicAllocation.maxExecutors\":     \r\n",
+					"        { \r\n",
+					"            \"activityparameterName\": \"maxExecutor\", \r\n",
+					"            \"defaultValue\": \"2\"\r\n",
+					"        }\r\n",
+					"    }\r\n",
+					"} "
+				],
+				"execution_count": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"tags": [
+						"parameters"
+					]
+				},
+				"source": [
+					"# Inherit parameters from Synapse pipeline\r\n",
+					"\r\n",
+					"sourceName = ''\r\n",
+					"schemaName = ''\r\n",
+					"tableName = ''\r\n",
+					"primaryKeyColumnList = ''\r\n",
+					"storageAccountName = ''\r\n",
+					"transientContainer = ''\r\n",
+					"transientDirectory = ''\r\n",
+					"transientFilename = ''\r\n",
+					"rawContainer = ''\r\n",
+					"rawDirectory = ''\r\n",
+					"rawFilename = ''\r\n",
+					"rawDatabaseName = ''\r\n",
+					"rawCompressionType = ''\r\n",
+					"timestampName = ''\r\n",
+					"isIncrementalFlag = ''\r\n",
+					"incrementalDeleteClause = ''"
+				],
+				"execution_count": 2
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"#### Setting partition sizes to impact performance.  Set the optimize flag parameter"
+				]
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"partitions = 8\n",
+					"spark.conf.set(\"spark.sql.shuffle.partitions\", str(partitions))"
+				],
+				"execution_count": 15
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"# if the rawDirectory variable contains the name of the Hive timestamp subfolder, strip that subfolder off the path (this is done because partitioning accounts for timestamp folder paths)\n",
+					"if rawDirectory.find(timestampName) > -1:\n",
+					"  rawDirectory = rawDirectory[:rawDirectory.find(timestampName)]"
+				],
+				"execution_count": 16
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"#### Create variables to dynamically set folder locations and table names"
+				]
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"# remove any leading or trailing slashes (we will supply these)\n",
+					"transientContainer = transientContainer.strip(\"/\")\n",
+					"rawContainer = rawContainer.strip(\"/\")\n",
+					"transientDirectory = transientDirectory.strip(\"/\")\n",
+					"rawDirectory = rawDirectory.strip(\"/\")\n",
+					"transientFilename = transientFilename.strip(\"/\")\n",
+					"rawFilename = rawFilename.strip(\"/\")\n",
+					"\n",
+					"\n",
+					"\n",
+					"transientFileFullPath = 'abfss://' + transientContainer + '@' + storageAccountName + \".dfs.core.windows.net/\" + transientDirectory + \"/\" + transientFilename\n",
+					"rawFileFullPath = 'abfss://' + rawContainer + '@' + storageAccountName + \".dfs.core.windows.net/\" + rawDirectory\n",
+					"\n",
+					"schemaPlusTableName = sourceName + \"_\" + schemaName + \"_\" + tableName\n",
+					"stagingTableName = \"staging_\" + schemaPlusTableName\n",
+					"\n",
+					"columnList = primaryKeyColumnList.replace(\" \", \"\").split(\",\")\n",
+					"\n",
+					"print(transientFileFullPath)\n",
+					"print(rawFileFullPath)\n",
+					"print(schemaPlusTableName)\n",
+					"print(stagingTableName)\n",
+					"print(columnList)"
+				],
+				"execution_count": 25
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"spark.read \\\n",
+					"  .parquet(transientFileFullPath) \\\n",
+					"  .createOrReplaceTempView(stagingTableName)\n",
+					""
+				],
+				"execution_count": 26
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"#### This command will only be used when we run for the first time.  Checking if the database exists each time should not have much of a performance penalty"
+				]
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"sqlQuery = \"CREATE DATABASE IF NOT EXISTS \" + rawDatabaseName\n",
+					"\n",
+					"print(sqlQuery)\n",
+					"\n",
+					"spark.sql(sqlQuery)"
+				],
+				"execution_count": 28
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"#### Using the schema from the staging table, use a CTAS statement to create a raw Delta table.  There WHERE 1 = 0 ensures we aren't loading data at this time"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"createQuery = \"\"\"CREATE TABLE IF NOT EXISTS {3}.{0} \r\n",
+					"USING DELTA\r\n",
+					"LOCATION '{1}'\r\n",
+					"TBLPROPERTIES(delta.enableChangeDataFeed = True)\r\n",
+					"AS\r\n",
+					"SELECT * FROM {2} WHERE 1 = 0\"\"\".format(schemaPlusTableName, rawFileFullPath, stagingTableName, rawDatabaseName)\r\n",
+					"\r\n",
+					"print(createQuery)\r\n",
+					"\r\n",
+					"spark.sql(createQuery)"
+				],
+				"execution_count": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"joinList = \"\"\r\n",
+					"for i in columnList:\r\n",
+					"  joinList += \"stage.\" + i + \" = \" + \"raw.\" + i + \" AND \"  \r\n",
+					"joinList = joinList[:-5]"
+				],
+				"execution_count": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"if isIncrementalFlag != True:\r\n",
+					"  # Truncate/insert for non incremental tables\r\n",
+					"  truncateQuery = \"DELETE FROM {0}.{1}\".format(rawDatabaseName, schemaPlusTableName)\r\n",
+					"\r\n",
+					"  print(truncateQuery)\r\n",
+					"\r\n",
+					"  spark.sql(truncateQuery)\r\n",
+					"  # Partition By Latest ETL Date\r\n",
+					"  insertQuery = \"\"\"\r\n",
+					"  WITH stg AS (\r\n",
+					"  SELECT\r\n",
+					"  *\r\n",
+					"  FROM\r\n",
+					"  {1}\r\n",
+					"  )\r\n",
+					"\r\n",
+					"  \r\n",
+					"  INSERT INTO {3}.{2}\r\n",
+					"  SELECT * FROM stg\r\n",
+					"  \"\"\".format(primaryKeyColumnList, stagingTableName, schemaPlusTableName, rawDatabaseName)\r\n",
+					"  print(insertQuery)\r\n",
+					"\r\n",
+					"  spark.sql(insertQuery)\r\n",
+					"elif isIncrementalFlag == True and primaryKeyColumnList !=\"\":\r\n",
+					"  # Incremental Merge\r\n",
+					"  mergeQuery = \"\"\"\r\n",
+					"  WITH stg AS (\r\n",
+					"  SELECT\r\n",
+					"  *, \r\n",
+					"  ROW_NUMBER() OVER(PARTITION BY {0} ORDER BY {0} DESC) AS ROWNUM\r\n",
+					"  FROM\r\n",
+					"  {1}\r\n",
+					"  )\r\n",
+					"\r\n",
+					"  MERGE INTO {4}.{2} AS raw\r\n",
+					"  USING (SELECT * FROM stg WHERE ROWNUM=1) AS stage\r\n",
+					"  ON {3}\r\n",
+					"  WHEN MATCHED THEN \r\n",
+					"    UPDATE SET *\r\n",
+					"  WHEN NOT MATCHED THEN\r\n",
+					"    INSERT *\r\n",
+					"  \"\"\".format(primaryKeyColumnList, stagingTableName, schemaPlusTableName, joinList, rawDatabaseName) #, hiveTimestampName\r\n",
+					"\r\n",
+					"  print(mergeQuery)\r\n",
+					"\r\n",
+					"  spark.sql(mergeQuery)\r\n",
+					"else:\r\n",
+					"    # Incremental Delete range for incoming data and insert\r\n",
+					"  deleteQuery = \"DELETE FROM {0}.{1} {2}\".format(rawDatabaseName, schemaPlusTableName, incrementalDeleteClause)\r\n",
+					"\r\n",
+					"  print(deleteQuery)\r\n",
+					"\r\n",
+					"  spark.sql(deleteQuery)\r\n",
+					"  # Partition By Latest ETL Date\r\n",
+					"  insertQuery = \"\"\"\r\n",
+					"  WITH stg AS (\r\n",
+					"  SELECT\r\n",
+					"  *\r\n",
+					"  FROM\r\n",
+					"  {1}\r\n",
+					"  )\r\n",
+					"\r\n",
+					"  \r\n",
+					"  INSERT INTO {3}.{2}\r\n",
+					"  SELECT * FROM stg\r\n",
+					"  \"\"\".format(primaryKeyColumnList, stagingTableName, schemaPlusTableName, rawDatabaseName)\r\n",
+					"  print(insertQuery)\r\n",
+					"\r\n",
+					"  spark.sql(insertQuery)"
+				],
+				"execution_count": null
+			}
+		]
+	}
+}

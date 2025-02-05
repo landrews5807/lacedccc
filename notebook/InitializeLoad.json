@@ -1,0 +1,238 @@
+{
+	"name": "InitializeLoad",
+	"properties": {
+		"folder": {
+			"name": "Lakehouse/Scripts"
+		},
+		"nbformat": 4,
+		"nbformat_minor": 2,
+		"sessionProperties": {
+			"driverMemory": "28g",
+			"driverCores": 4,
+			"executorMemory": "28g",
+			"executorCores": 4,
+			"numExecutors": 2,
+			"conf": {
+				"spark.dynamicAllocation.enabled": "false",
+				"spark.dynamicAllocation.minExecutors": "2",
+				"spark.dynamicAllocation.maxExecutors": "2",
+				"spark.autotune.trackingId": "4d7cb6b0-e044-4461-919a-3486e3891cee"
+			}
+		},
+		"metadata": {
+			"saveOutput": true,
+			"enableDebugMode": true,
+			"kernelspec": {
+				"name": "synapse_pyspark",
+				"display_name": "Synapse PySpark"
+			},
+			"language_info": {
+				"name": "python"
+			},
+			"sessionKeepAliveTimeout": 30
+		},
+		"cells": [
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# Define Session Functions"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"#Set up JDBC Connection for Executing Stored Procs, SQL Commands, and Appends/Overwrites\r\n",
+					"jdbcUsername = mssparkutils.credentials.getSecretWithLS(\"ls_keyvault\", \"kv-synapseserverless-user\")\r\n",
+					"jdbcPassword = mssparkutils.credentials.getSecretWithLS(\"ls_keyvault\", \"kv-synapseserverless-password\")\r\n",
+					"jdbcHostname = mssparkutils.credentials.getSecretWithLS(\"ls_keyvault\", \"kv-synapseserverless-hostname\")\r\n",
+					"jdbcPort = 1433\r\n",
+					"jdbcDatabase = 'lakehouse'\r\n",
+					"sharedDatabase = 'shared-lakehouse'\r\n",
+					"jobId = mssparkutils.env.getJobId()\r\n",
+					"\r\n",
+					"# Azure Synapse Serverless Pool (Lakehouse)\r\n",
+					"lakehouseUrl = f\"jdbc:sqlserver://{jdbcHostname}:{jdbcPort};database={jdbcDatabase};encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.database.windows.net;loginTimeout=60;\"\r\n",
+					"# Azure Synapse Serverless Pool (Shared Lakehouse)\r\n",
+					"sharedUrl = f\"jdbc:sqlserver://{jdbcHostname}:{jdbcPort};database={sharedDatabase};encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.database.windows.net;loginTimeout=60;\"\r\n",
+					"\r\n",
+					"connectionProperties = {\r\n",
+					"  \"user\" : jdbcUsername,\r\n",
+					"  \"password\" : jdbcPassword\r\n",
+					"}\r\n",
+					"\r\n",
+					"driver_manager = spark._sc._gateway.jvm.java.sql.DriverManager\r\n",
+					"properties = spark._sc._gateway.jvm.java.util.Properties()\r\n",
+					"properties.putAll(connectionProperties)\r\n",
+					"\r\n",
+					"# Use linked service to connect to storage using Managed Identity (requires 'abfss:// filepath to read/write).\r\n",
+					"#storageAccount = mssparkutils.credentials.getSecret(KeyVaultName,\"wav2-datalake-abfss\", \"ls_wav2_keyvault\")\r\n",
+					"#spark.conf.set(\"spark.storage.synapse.linkedServiceName\", \"ls_wav2_storage\")\r\n",
+					"#spark.conf.set(\"fs.azure.account.oauth.provider.type\", \"com.microsoft.azure.synapse.tokenlibrary.LinkedServiceBasedTokenProvider\")"
+				],
+				"execution_count": 4
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"sqlQuery = \"CREATE DATABASE IF NOT EXISTS \" + jdbcDatabase\r\n",
+					"\r\n",
+					"spark.sql(sqlQuery)"
+				],
+				"execution_count": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"def convertAbfssToHttps(abfss):\r\n",
+					"    abfss = abfss.replace(\"abfss://\", \"\")\r\n",
+					"    index = abfss.find(\"@\")\r\n",
+					"    container = abfss[:index]\r\n",
+					"    abfss = abfss[index + 1:]\r\n",
+					"    index = abfss.find(\"/\")\r\n",
+					"    return f\"https://{abfss[:index]}/{container}{abfss[index:]}\""
+				],
+				"execution_count": 5
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"def execute_serverless_command(query):\r\n",
+					"    conn = driver_manager.getConnection(lakehouseUrl, properties)\r\n",
+					"    exec_statement = conn.prepareCall(query)\r\n",
+					"    exec_statement.execute()\r\n",
+					"\r\n",
+					"def execute_sharedserverless_command(query):\r\n",
+					"    conn = driver_manager.getConnection(sharedUrl, properties)\r\n",
+					"    exec_statement = conn.prepareCall(query)\r\n",
+					"    exec_statement.execute()\r\n",
+					"\r\n",
+					"def get_serverless_dataframe(query):\r\n",
+					"    return spark.read.jdbc(url=lakehouseUrl, table=f\"({query}) tbl\", properties=connectionProperties)\r\n",
+					"\r\n",
+					"def get_sharedserverless_dataframe(query):\r\n",
+					"    return spark.read.jdbc(url=sharedUrl, table=f\"({query}) tbl\", properties=connectionProperties)"
+				],
+				"execution_count": 6
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"from pyspark.sql.functions import *\r\n",
+					"\r\n",
+					"# concat_ws but maintain NULL values in their position instead of removing them from the concated list\r\n",
+					"def concatWithNulls(sep, *cols):\r\n",
+					"    toConcat = []\r\n",
+					"    for column in cols:\r\n",
+					"        toConcat.append(when(col(column).isNull(), lit(\"\")).otherwise(col(column).cast(\"string\")))\r\n",
+					"    return concat_ws(sep, *toConcat)\r\n",
+					"\r\n",
+					"def generateHash(cols):\r\n",
+					"    return sha2(concatWithNulls(\"||\", *cols), 256)"
+				],
+				"execution_count": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"def list_subdirectories(path: str, max_depth=4):\r\n",
+					"    #List all files and folders in specified path within maximum recursion depth.\r\n",
+					"\r\n",
+					"    li = mssparkutils.fs.ls(path)\r\n",
+					"\r\n",
+					"    # Return all files\r\n",
+					"    for x in li:\r\n",
+					"        if x.size != 0:\r\n",
+					"            yield x\r\n",
+					"\r\n",
+					"    # If the max_depth has not been reached, start listing files and folders in subdirectories\r\n",
+					"    if max_depth > 1:\r\n",
+					"        for x in li:\r\n",
+					"            if x.size != 0:\r\n",
+					"                continue\r\n",
+					"            for y in list_subdirectories(x.path, max_depth - 1):\r\n",
+					"                yield y\r\n",
+					"\r\n",
+					"    # If max_depth has been reached, return the folders\r\n",
+					"    else:\r\n",
+					"        for x in li:\r\n",
+					"            if x.size == 0:\r\n",
+					"                yield x"
+				],
+				"execution_count": null
+			}
+		]
+	}
+}
