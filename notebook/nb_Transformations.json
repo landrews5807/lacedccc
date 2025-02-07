@@ -17,7 +17,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "8e9d02fd-5735-4a39-a023-6bfec85380b7"
+				"spark.autotune.trackingId": "fef9d96e-fa19-4051-96e6-9bef940c9233"
 			}
 		},
 		"metadata": {
@@ -64,10 +64,13 @@
 				"source": [
 					"%run common_transformations"
 				],
-				"execution_count": 12
+				"execution_count": 2
 			},
 			{
 				"cell_type": "code",
+				"metadata": {
+					"collapsed": false
+				},
 				"source": [
 					"data = [\r\n",
 					"    ('Alice', '2000-01-01', None),\r\n",
@@ -82,7 +85,7 @@
 					"\r\n",
 					"display(df)"
 				],
-				"execution_count": null
+				"execution_count": 3
 			},
 			{
 				"cell_type": "code",
@@ -95,7 +98,8 @@
 						"transient": {
 							"deleting": false
 						}
-					}
+					},
+					"collapsed": false
 				},
 				"source": [
 					"display(\r\n",
@@ -104,7 +108,7 @@
 					"    .transform(replace_null)\r\n",
 					")"
 				],
-				"execution_count": null
+				"execution_count": 4
 			}
 		]
 	}
