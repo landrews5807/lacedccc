@@ -1,0 +1,111 @@
+{
+	"name": "nb_Transformations",
+	"properties": {
+		"nbformat": 4,
+		"nbformat_minor": 2,
+		"bigDataPool": {
+			"referenceName": "sparkpoolmed",
+			"type": "BigDataPoolReference"
+		},
+		"sessionProperties": {
+			"driverMemory": "28g",
+			"driverCores": 4,
+			"executorMemory": "28g",
+			"executorCores": 4,
+			"numExecutors": 2,
+			"conf": {
+				"spark.dynamicAllocation.enabled": "false",
+				"spark.dynamicAllocation.minExecutors": "2",
+				"spark.dynamicAllocation.maxExecutors": "2",
+				"spark.autotune.trackingId": "8e9d02fd-5735-4a39-a023-6bfec85380b7"
+			}
+		},
+		"metadata": {
+			"saveOutput": true,
+			"enableDebugMode": true,
+			"kernelspec": {
+				"name": "synapse_pyspark",
+				"display_name": "Synapse PySpark"
+			},
+			"language_info": {
+				"name": "python"
+			},
+			"a365ComputeOptions": {
+				"id": "/subscriptions/1a8f2456-71f5-4894-9064-fbbd6756370d/resourceGroups/rg_lace/providers/Microsoft.Synapse/workspaces/synlacedccc/bigDataPools/sparkpoolmed",
+				"name": "sparkpoolmed",
+				"type": "Spark",
+				"endpoint": "https://synlacedccc.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/sparkpoolmed",
+				"auth": {
+					"type": "AAD",
+					"authResource": "https://dev.azuresynapse.net"
+				},
+				"sparkVersion": "3.4",
+				"nodeCount": 3,
+				"cores": 8,
+				"memory": 56,
+				"automaticScaleJobs": false
+			},
+			"sessionKeepAliveTimeout": 30
+		},
+		"cells": [
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"%run common_transformations"
+				],
+				"execution_count": 12
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"data = [\r\n",
+					"    ('Alice', '2000-01-01', None),\r\n",
+					"    ('Bob', '1990-10-04', 'Albuquerque'),\r\n",
+					"    ('Cathy', '1973-11-15', 'Athens'),\r\n",
+					"    ('David', '2015-05-07', 'Houston')\r\n",
+					"]\r\n",
+					"\r\n",
+					"columns = ['Name', 'Birthdate', 'City']\r\n",
+					"\r\n",
+					"df = spark.createDataFrame(data, columns)\r\n",
+					"\r\n",
+					"display(df)"
+				],
+				"execution_count": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"display(\r\n",
+					"    df\r\n",
+					"    .transform(with_type2_columns)\r\n",
+					"    .transform(replace_null)\r\n",
+					")"
+				],
+				"execution_count": null
+			}
+		]
+	}
+}
