@@ -2,7 +2,7 @@
 	"name": "nb_dimensionQueue",
 	"properties": {
 		"folder": {
-			"name": "Lakehouse/Scripts"
+			"name": "Dimensions"
 		},
 		"nbformat": 4,
 		"nbformat_minor": 2,
@@ -20,7 +20,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "45650a42-d2cd-4372-bef9-d01b4d96928d"
+				"spark.autotune.trackingId": "d9c9e82b-a28f-4511-8c45-46ae794539bd"
 			}
 		},
 		"metadata": {
