@@ -1,5 +1,5 @@
 {
-	"name": "nb_dimensionQueue",
+	"name": "nb_LoaddimensionQueue",
 	"properties": {
 		"folder": {
 			"name": "Dimensions"
@@ -20,7 +20,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "d9c9e82b-a28f-4511-8c45-46ae794539bd"
+				"spark.autotune.trackingId": "8d588a10-d802-455a-9b3e-8be68e481035"
 			}
 		},
 		"metadata": {
