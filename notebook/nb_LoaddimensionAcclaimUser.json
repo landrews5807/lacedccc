@@ -1,5 +1,5 @@
 {
-	"name": "nb_dimensionAcclaimUser",
+	"name": "nb_LoaddimensionAcclaimUser",
 	"properties": {
 		"folder": {
 			"name": "Dimensions"
@@ -20,7 +20,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "8d63c033-b3ce-4e3f-9d65-df1dfab408b1"
+				"spark.autotune.trackingId": "0e08a779-ab69-4feb-ad13-924d90761ba7"
 			}
 		},
 		"metadata": {
