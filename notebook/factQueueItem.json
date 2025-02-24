@@ -1,5 +1,5 @@
 {
-	"name": "LoadFactScript",
+	"name": "factQueueItem",
 	"properties": {
 		"folder": {
 			"name": "Facts"
@@ -16,7 +16,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "6045e8ed-33ce-43ce-81e9-b03db00b561e"
+				"spark.autotune.trackingId": "e81938e1-630e-4348-ada8-611240cb0ea8"
 			}
 		},
 		"metadata": {
