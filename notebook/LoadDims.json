@@ -1,0 +1,79 @@
+{
+	"name": "LoadDims",
+	"properties": {
+		"folder": {
+			"name": "Dimensions"
+		},
+		"nbformat": 4,
+		"nbformat_minor": 2,
+		"sessionProperties": {
+			"driverMemory": "28g",
+			"driverCores": 4,
+			"executorMemory": "28g",
+			"executorCores": 4,
+			"numExecutors": 2,
+			"conf": {
+				"spark.dynamicAllocation.enabled": "false",
+				"spark.dynamicAllocation.minExecutors": "2",
+				"spark.dynamicAllocation.maxExecutors": "2",
+				"spark.autotune.trackingId": "1588d393-0a7a-429b-90eb-f1fd3f6f2c5f"
+			}
+		},
+		"metadata": {
+			"saveOutput": true,
+			"enableDebugMode": false,
+			"kernelspec": {
+				"name": "synapse_pyspark",
+				"display_name": "python"
+			},
+			"language_info": {
+				"name": "python"
+			},
+			"sessionKeepAliveTimeout": 30
+		},
+		"cells": [
+			{
+				"cell_type": "code",
+				"source": [
+					"DAG = {\n",
+					"    \"activities\": [\n",
+					"        {\n",
+					"            \"name\": \"dimAcclaimAgent\",\n",
+					"            \"path\": \"dimAcclaimAgent\",\n",
+					"            \"timeoutPerCellInSeconds\": 2000\n",
+					"        },\n",
+					"        {\n",
+					"            \"name\": \"dimAcclaimBranch\",\n",
+					"            \"path\": \"dimAcclaimBranch\",\n",
+					"            \"timeoutPerCellInSeconds\": 2000\n",
+					"        },\n",
+					"        {\n",
+					"            \"name\": \"dimAcclaimDocType\",\n",
+					"            \"path\": \"dimAcclaimDocType\",\n",
+					"            \"timeoutPerCellInSeconds\": 2000\n",
+					"        },\n",
+					"        {\n",
+					"            \"name\": \"dimAcclaimQueue\",\n",
+					"            \"path\": \"dimAcclaimQueue\",\n",
+					"            \"timeoutPerCellInSeconds\": 2000\n",
+					"        },\n",
+					"        {\n",
+					"            \"name\": \"dimAcclaimSourceCode\",\n",
+					"            \"path\": \"dimAcclaimSourceCode\",\n",
+					"            \"timeoutPerCellInSeconds\": 2000\n",
+					"        },\n",
+					"        {\n",
+					"            \"name\": \"dimAcclaimUser\",\n",
+					"            \"path\": \"dimAcclaimUser\",\n",
+					"            \"timeoutPerCellInSeconds\": 2000\n",
+					"        }\n",
+					"    ]\n",
+					"}\n",
+					"\n",
+					"mssparkutils.notebook.runMultiple(DAG)"
+				],
+				"execution_count": null
+			}
+		]
+	}
+}
