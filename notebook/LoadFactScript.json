@@ -1,6 +1,9 @@
 {
 	"name": "LoadFactScript",
 	"properties": {
+		"folder": {
+			"name": "Facts"
+		},
 		"nbformat": 4,
 		"nbformat_minor": 2,
 		"sessionProperties": {
@@ -13,7 +16,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "f33060c6-00e2-458c-b230-a734acea518f"
+				"spark.autotune.trackingId": "6045e8ed-33ce-43ce-81e9-b03db00b561e"
 			}
 		},
 		"metadata": {
