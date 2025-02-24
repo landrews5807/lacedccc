@@ -1,6 +1,9 @@
 {
 	"name": "LoadDimensionScript",
 	"properties": {
+		"folder": {
+			"name": "Dimensions"
+		},
 		"nbformat": 4,
 		"nbformat_minor": 2,
 		"sessionProperties": {
@@ -13,7 +16,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "68f42671-6951-491e-a2b2-ec91380df398"
+				"spark.autotune.trackingId": "1e5e9fd9-b0af-4bad-93f8-eb56f4bcfce6"
 			}
 		},
 		"metadata": {
