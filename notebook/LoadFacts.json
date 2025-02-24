@@ -2,7 +2,7 @@
 	"name": "LoadFacts",
 	"properties": {
 		"folder": {
-			"name": "Dimensions"
+			"name": "Facts"
 		},
 		"nbformat": 4,
 		"nbformat_minor": 2,
@@ -16,7 +16,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "53c5af20-4297-4400-bd87-17e0b9f64cc7"
+				"spark.autotune.trackingId": "2558ef91-390f-4002-b432-7ed708324b1a"
 			}
 		},
 		"metadata": {
