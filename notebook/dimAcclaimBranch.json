@@ -16,7 +16,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "ddda8e18-21f5-46a3-a999-f0b1f8d31670"
+				"spark.autotune.trackingId": "871e98f6-ce0c-45d5-9dca-935047ff97a0"
 			}
 		},
 		"metadata": {
@@ -42,7 +42,7 @@
 					}
 				},
 				"source": [
-					"# Load Dimension\r\n",
+					"# Load Dimension dimAcclaimBranch\r\n",
 					"This notebook takes a Spark Temp Table and a few parameters and dynamically updates a Dimension in the Lakehouse layer of the datalake. Currently Type 1 & Type 2 SCDs are supported. The Lakehouse layer is accessible from the Lake database in Synapse."
 				]
 			},
@@ -150,28 +150,6 @@
 					"sqlQuery = \"SELECT BranchId, Name FROM silver.acclaim_dbo_tblbranch\""
 				],
 				"execution_count": 90
-			},
-			{
-				"cell_type": "code",
-				"metadata": {
-					"jupyter": {
-						"source_hidden": false,
-						"outputs_hidden": false
-					},
-					"nteract": {
-						"transient": {
-							"deleting": false
-						}
-					}
-				},
-				"source": [
-					"naturalKeyColumnList = eval(naturalKeyColumnList)\r\n",
-					"unknownNaturalKeyList = eval(unknownNaturalKeyList)\r\n",
-					"print(naturalKeyColumnList)\r\n",
-					"print(unknownNaturalKeyList)\r\n",
-					"sqlQuery = sqlQuery.replace(\"[tm]\",\"'\")"
-				],
-				"execution_count": null
 			},
 			{
 				"cell_type": "code",
