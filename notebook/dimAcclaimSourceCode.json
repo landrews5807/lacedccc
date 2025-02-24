@@ -16,7 +16,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "3bc0c94c-1361-4f50-9b4c-11225c8d4752"
+				"spark.autotune.trackingId": "31dae74e-15ac-49f6-9a1a-130b8ef04eb2"
 			}
 		},
 		"metadata": {
@@ -42,7 +42,7 @@
 					}
 				},
 				"source": [
-					"# Load Dimension\r\n",
+					"# Load Dimension dimAcclaimSourceCode\r\n",
 					"This notebook takes a Spark Temp Table and a few parameters and dynamically updates a Dimension in the Lakehouse layer of the datalake. Currently Type 1 & Type 2 SCDs are supported. The Lakehouse layer is accessible from the Lake database in Synapse."
 				]
 			},
@@ -122,6 +122,13 @@
 			},
 			{
 				"cell_type": "code",
+				"source": [
+					"(6, 1, 'gold', 'Dim', 'AcclaimSourceCode', 'SK_SourceCode', false, '[\\\"SourceCodeId\\\"]', '[-1]', true, 'SELECT SourceCodeID, Code, Description, CASE Code WHEN [tm]INTERNALERECORD[tm] THEN 0 ELSE 1 END AS PaidSource FROM silver.acclaim_dbo_tblsourcecode') \\"
+				],
+				"execution_count": null
+			},
+			{
+				"cell_type": "code",
 				"metadata": {
 					"jupyter": {
 						"source_hidden": false,
@@ -139,39 +146,17 @@
 				"source": [
 					"\r\n",
 					"# Example Parameters:\r\n",
-					"dimensionType = 2\r\n",
+					"dimensionType = 1\r\n",
 					"databaseName = 'gold'\r\n",
 					"schemaName = \"Dim\"\r\n",
-					"tableName = \"AcclaimUser\"\r\n",
-					"surrogateKey = \"UserSK\"\r\n",
+					"tableName = \"AcclaimSourceCode\"\r\n",
+					"surrogateKey = \"SK_SourceCode\"\r\n",
 					"surrogateKeyIsIdentity = False\r\n",
-					"naturalKeyColumnList = [\"UserID\"]\r\n",
+					"naturalKeyColumnList = [\"SourceCodeId\"]\r\n",
 					"unknownNaturalKeyList = [-1]\r\n",
-					"sqlQuery = ''"
+					"sqlQuery = \"SELECT SourceCodeID, Code, Description, CASE Code WHEN 'INTERNALERECORD' THEN 0 ELSE 1 END AS PaidSource FROM silver.acclaim_dbo_tblsourcecode\""
 				],
 				"execution_count": 90
-			},
-			{
-				"cell_type": "code",
-				"metadata": {
-					"jupyter": {
-						"source_hidden": false,
-						"outputs_hidden": false
-					},
-					"nteract": {
-						"transient": {
-							"deleting": false
-						}
-					}
-				},
-				"source": [
-					"naturalKeyColumnList = eval(naturalKeyColumnList)\r\n",
-					"unknownNaturalKeyList = eval(unknownNaturalKeyList)\r\n",
-					"print(naturalKeyColumnList)\r\n",
-					"print(unknownNaturalKeyList)\r\n",
-					"sqlQuery = sqlQuery.replace(\"[tm]\",\"'\")"
-				],
-				"execution_count": null
 			},
 			{
 				"cell_type": "code",

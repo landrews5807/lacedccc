@@ -16,7 +16,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "6150eef7-c009-4e69-8621-620dcb9f1cd5"
+				"spark.autotune.trackingId": "4f2872f9-c39b-4be6-bd0b-dda5dcac2108"
 			}
 		},
 		"metadata": {
@@ -150,28 +150,6 @@
 					"sqlQuery = \"SELECT DocTypeId, Active, Abbreviation, Description, GLAccountId, CASE Abbreviation WHEN 'A\\/CDEED' THEN 'DEED' WHEN 'MLC' THEN 'ML' WHEN 'MMOD' THEN 'MOD' WHEN 'MODCU' THEN 'MOD' WHEN 'SATNF' THEN 'SAT' WHEN 'MTGND' THEN 'MTG' WHEN 'MTGNI' THEN 'MTG' WHEN 'MTGTF' THEN 'MTG' WHEN 'MTGG' THEN 'MTG' WHEN 'MTGCU' THEN 'MTG' WHEN 'NOTBOND' THEN 'NOTICE' WHEN 'NOTCONTE' THEN 'NOTICE' WHEN 'NOTHOMEST' THEN 'NOTICE' WHEN 'NOTICE' THEN 'NOTICE' ELSE Abbreviation END AS DocTypeGroup FROM silver.acclaim_dbo_tbldoctype\""
 				],
 				"execution_count": 90
-			},
-			{
-				"cell_type": "code",
-				"metadata": {
-					"jupyter": {
-						"source_hidden": false,
-						"outputs_hidden": false
-					},
-					"nteract": {
-						"transient": {
-							"deleting": false
-						}
-					}
-				},
-				"source": [
-					"naturalKeyColumnList = eval(naturalKeyColumnList)\r\n",
-					"unknownNaturalKeyList = eval(unknownNaturalKeyList)\r\n",
-					"print(naturalKeyColumnList)\r\n",
-					"print(unknownNaturalKeyList)\r\n",
-					"sqlQuery = sqlQuery.replace(\"[tm]\",\"'\")"
-				],
-				"execution_count": null
 			},
 			{
 				"cell_type": "code",
