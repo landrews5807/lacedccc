@@ -1,5 +1,5 @@
 {
-	"name": "LoadDimensionScript",
+	"name": "dimAcclaimUser",
 	"properties": {
 		"folder": {
 			"name": "Dimensions"
@@ -16,7 +16,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "1e5e9fd9-b0af-4bad-93f8-eb56f4bcfce6"
+				"spark.autotune.trackingId": "1ffd8e57-d7fb-442c-9ffb-2b2a4e561ff7"
 			}
 		},
 		"metadata": {
