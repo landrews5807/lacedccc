@@ -1,5 +1,5 @@
 {
-	"name": "LoadFactScript",
+	"name": "LoadFactScript_orig",
 	"properties": {
 		"folder": {
 			"name": "Lakehouse/Scripts"
@@ -16,7 +16,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "49a9e424-07c4-4174-bdca-b09c188773b4"
+				"spark.autotune.trackingId": "d7ee03ce-e6d4-46db-945f-fa5235f16373"
 			}
 		},
 		"metadata": {

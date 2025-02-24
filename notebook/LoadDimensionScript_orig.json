@@ -1,5 +1,5 @@
 {
-	"name": "LoadDimensionScript",
+	"name": "LoadDimensionScript_orig",
 	"properties": {
 		"folder": {
 			"name": "Lakehouse/Scripts"
@@ -20,7 +20,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "6b311c40-4f4a-4d5b-8c9e-e21601710308"
+				"spark.autotune.trackingId": "ca39f1c3-54a5-4b1b-a293-75ff9083dbc1"
 			}
 		},
 		"metadata": {
@@ -34,7 +34,7 @@
 				"name": "python"
 			},
 			"a365ComputeOptions": {
-				"id": "/subscriptions/af48a4da-3c2f-4753-a8be-19b32340369f/resourceGroups/PLN-EU2-MDPHydrator-RG/providers/Microsoft.Synapse/workspaces/pln-mdphydrator-syn/bigDataPools/adhoc",
+				"id": "subscriptions/*/resourceGroups/*/providers/Microsoft.Synapse/workspaces/*/bigDataPools/adhoc",
 				"name": "adhoc",
 				"auth": {
 					"type": "AAD",
