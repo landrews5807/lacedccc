@@ -16,7 +16,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "f8b2fb30-fbfe-4649-b77f-ac30ce83b441"
+				"spark.autotune.trackingId": "9416b8c2-a311-4608-8f8d-a8871bdb3c7d"
 			}
 		},
 		"metadata": {
@@ -42,7 +42,7 @@
 					}
 				},
 				"source": [
-					"# Load Dimension\r\n",
+					"# Load Dimension dimAcclaimAgent\r\n",
 					"This notebook takes a Spark Temp Table and a few parameters and dynamically updates a Dimension in the Lakehouse layer of the datalake. Currently Type 1 & Type 2 SCDs are supported. The Lakehouse layer is accessible from the Lake database in Synapse."
 				]
 			},
@@ -122,6 +122,13 @@
 			},
 			{
 				"cell_type": "code",
+				"source": [
+					"2, 1, 'gold', 'Dim', 'AcclaimAgent', 'SK_Agent', false, '[\\\"AgentId\\\"]', '[-1]', true, 'SELECT AgentId, AgentKey, Active, CanDeferPayment, Name FROM silver.acclaim_dbo_tblagent' ), \\"
+				],
+				"execution_count": null
+			},
+			{
+				"cell_type": "code",
 				"metadata": {
 					"jupyter": {
 						"source_hidden": false,
@@ -142,36 +149,14 @@
 					"dimensionType = 2\r\n",
 					"databaseName = 'gold'\r\n",
 					"schemaName = \"Dim\"\r\n",
-					"tableName = \"AcclaimUser\"\r\n",
-					"surrogateKey = \"UserSK\"\r\n",
+					"tableName = \"AcclaimAgent\"\r\n",
+					"surrogateKey = \"SK_Agent\"\r\n",
 					"surrogateKeyIsIdentity = False\r\n",
-					"naturalKeyColumnList = [\"UserID\"]\r\n",
+					"naturalKeyColumnList = [\"AgentID\"]\r\n",
 					"unknownNaturalKeyList = [-1]\r\n",
-					"sqlQuery = ''"
+					"sqlQuery = \"SELECT AgentId, AgentKey, Active, CanDeferPayment, Name FROM silver.acclaim_dbo_tblagent\""
 				],
 				"execution_count": 90
-			},
-			{
-				"cell_type": "code",
-				"metadata": {
-					"jupyter": {
-						"source_hidden": false,
-						"outputs_hidden": false
-					},
-					"nteract": {
-						"transient": {
-							"deleting": false
-						}
-					}
-				},
-				"source": [
-					"naturalKeyColumnList = eval(naturalKeyColumnList)\r\n",
-					"unknownNaturalKeyList = eval(unknownNaturalKeyList)\r\n",
-					"print(naturalKeyColumnList)\r\n",
-					"print(unknownNaturalKeyList)\r\n",
-					"sqlQuery = sqlQuery.replace(\"[tm]\",\"'\")"
-				],
-				"execution_count": null
 			},
 			{
 				"cell_type": "code",
