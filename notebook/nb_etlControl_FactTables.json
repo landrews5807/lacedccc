@@ -1,0 +1,80 @@
+{
+	"name": "nb_etlControl_FactTables",
+	"properties": {
+		"nbformat": 4,
+		"nbformat_minor": 2,
+		"sessionProperties": {
+			"driverMemory": "28g",
+			"driverCores": 4,
+			"executorMemory": "28g",
+			"executorCores": 4,
+			"numExecutors": 2,
+			"conf": {
+				"spark.dynamicAllocation.enabled": "false",
+				"spark.dynamicAllocation.minExecutors": "2",
+				"spark.dynamicAllocation.maxExecutors": "2",
+				"spark.autotune.trackingId": "25216f54-5b0e-4c07-9ffe-ffbc61a312eb"
+			}
+		},
+		"metadata": {
+			"saveOutput": true,
+			"enableDebugMode": false,
+			"kernelspec": {
+				"name": "synapse_pyspark",
+				"display_name": "Synapse PySpark"
+			},
+			"language_info": {
+				"name": "python"
+			},
+			"sessionKeepAliveTimeout": 30
+		},
+		"cells": [
+			{
+				"cell_type": "code",
+				"source": [
+					"from datetime import datetime, date\n",
+					"\n",
+					"print(datetime.now())"
+				],
+				"execution_count": 7
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"# -----------------------------------\n",
+					"#spark.sql(\"DROP TABLE etlcontrol.IngestionList_fact\") "
+				],
+				"execution_count": 8
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"spark.sql(\"CREATE TABLE IF NOT EXISTS etlcontrol.IngestionList_fact (ListKey INT, DimensionType INT, DatabaseName VARCHAR(100), SchemaName VARCHAR(100), TableName VARCHAR(100), SurrogateKey VARCHAR(100), SurrogateKeyIsIdentity BOOLEAN, IsIncrementalLoad BOOLEAN, IncrementalColumn VARCHAR(100), NaturalKeyColumnList VARCHAR(100), UnknownNaturalKeyList VARCHAR(100), IsActive BOOLEAN, SQLQuery VARCHAR(2000))  USING DELTA LOCATION 'abfss://fs-analyticsdev@dlsdccanalyticsdev.dfs.core.windows.net/etlcontrol/IngestionList_fact' \")\n",
+					"\n",
+					"#spark.sql(\"DELETE FROM etlcontrol.IngestionList_fact\")"
+				],
+				"execution_count": 9
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"spark.sql(f\"INSERT INTO etlcontrol.IngestionList_fact (ListKey, DimensionType,DatabaseName,SchemaName,TableName,SurrogateKey,SurrogateKeyIsIdentity,IsIncrementalLoad,IncrementalColumn,NaturalKeyColumnList,UnknownNaturalKeyList,IsActive,SQLQuery) VALUES \\\n",
+					"(1, 2, 'gold', 'Fact', 'AcclaimQueueItem', 'SK_QueueItem', false, true, 'ModifyDateKey', '[\\\"QueueItemId\\\"]', '[-1]', true, 'SELECT q.QueueItemId,q.QueueId,q.DomainId, COALESCE(date_format(to_timestamp(q.EnqueueDate, \\\"yyyy-MM-dd HH:mm:ss\\\"), \\\"yyyyMMdd\\\"), [tm]18991111[tm]) AS EnqueueDateKey, COALESCE(date_format(to_timestamp(q.EnqueueDate, \\\"yyyy-MM-dd HH:mm:ss\\\"), \\\"HHmmss\\\"), [tm]18991111[tm]) AS EnqueueTimeKey, COALESCE(date_format(to_timestamp(q.CreateDate, \\\"yyyy-MM-dd HH:mm:ss\\\"), \\\"yyyyMMdd\\\"), [tm]18991111[tm]) AS CreateDateKey, COALESCE(u.SK_User, -1) AS CreateByUserKey, COALESCE(date_format(to_timestamp(q.ModifyDate, \\\"yyyy-MM-dd HH:mm:ss\\\"), \\\"yyyyMMdd\\\"), [tm]18991111[tm]) AS ModifyDateKey, COALESCE(u2.SK_User, -1) AS ModifyByUserKey, COALESCE(u3.SK_User, -1) AS AssignedToUserKey, COALESCE(date_format(to_timestamp(AssignedDate, \\\"yyyy-MM-dd HH:mm:ss\\\"), \\\"yyyyMMdd\\\"), [tm]18991111[tm]) AS AssignedDateKey, DATEDIFF(day, CreateDate, EnqueueDate) AS DaysInQueue FROM silver.acclaim_dbo_tblqueueitem q LEFT Join gold.dim_acclaimuser u ON u.Username = q.CreateBy AND u.ETLRowIsActive = 1 LEFT JOIN gold.dim_acclaimuser u2 ON u2.Username = q.ModifyBy AND u2.ETLRowIsActive = 1 LEFT JOIN gold.dim_acclaimuser u3 ON u3.Username = q.AssignedTo AND u3.ETLRowIsActive = 1' ) \\\n",
+					"\")"
+				],
+				"execution_count": 10
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"collapsed": false
+				},
+				"source": [
+					"%%sql\n",
+					"SELECT * FROM etlcontrol.ingestionlist_fact ORDER BY ListKey DESC"
+				],
+				"execution_count": 12
+			}
+		]
+	}
+}
