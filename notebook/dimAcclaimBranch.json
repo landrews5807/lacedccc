@@ -16,7 +16,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "7d3d273a-da56-4fa8-9f20-5a5743aeec9d"
+				"spark.autotune.trackingId": "ddda8e18-21f5-46a3-a999-f0b1f8d31670"
 			}
 		},
 		"metadata": {
@@ -139,15 +139,15 @@
 				"source": [
 					"\r\n",
 					"# Example Parameters:\r\n",
-					"dimensionType = 2\r\n",
+					"dimensionType = 1\r\n",
 					"databaseName = 'gold'\r\n",
 					"schemaName = \"Dim\"\r\n",
-					"tableName = \"AcclaimUser\"\r\n",
-					"surrogateKey = \"UserSK\"\r\n",
+					"tableName = \"AcclaimBranch\"\r\n",
+					"surrogateKey = \"SK_Branch\"\r\n",
 					"surrogateKeyIsIdentity = False\r\n",
-					"naturalKeyColumnList = [\"UserID\"]\r\n",
+					"naturalKeyColumnList = [\"BranchID\"]\r\n",
 					"unknownNaturalKeyList = [-1]\r\n",
-					"sqlQuery = ''"
+					"sqlQuery = \"SELECT BranchId, Name FROM silver.acclaim_dbo_tblbranch\""
 				],
 				"execution_count": 90
 			},
