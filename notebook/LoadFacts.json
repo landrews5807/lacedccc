@@ -1,0 +1,54 @@
+{
+	"name": "LoadFacts",
+	"properties": {
+		"folder": {
+			"name": "Dimensions"
+		},
+		"nbformat": 4,
+		"nbformat_minor": 2,
+		"sessionProperties": {
+			"driverMemory": "28g",
+			"driverCores": 4,
+			"executorMemory": "28g",
+			"executorCores": 4,
+			"numExecutors": 2,
+			"conf": {
+				"spark.dynamicAllocation.enabled": "false",
+				"spark.dynamicAllocation.minExecutors": "2",
+				"spark.dynamicAllocation.maxExecutors": "2",
+				"spark.autotune.trackingId": "53c5af20-4297-4400-bd87-17e0b9f64cc7"
+			}
+		},
+		"metadata": {
+			"saveOutput": true,
+			"enableDebugMode": false,
+			"kernelspec": {
+				"name": "synapse_pyspark",
+				"display_name": "python"
+			},
+			"language_info": {
+				"name": "python"
+			},
+			"sessionKeepAliveTimeout": 30
+		},
+		"cells": [
+			{
+				"cell_type": "code",
+				"source": [
+					"DAG = {\n",
+					"    \"activities\": [\n",
+					"        {\n",
+					"            \"name\": \"factQueueItem\",\n",
+					"            \"path\": \"factQueueItem\",\n",
+					"            \"timeoutPerCellInSeconds\": 2000\n",
+					"        }\n",
+					"    ]\n",
+					"}\n",
+					"\n",
+					"mssparkutils.notebook.runMultiple(DAG)"
+				],
+				"execution_count": null
+			}
+		]
+	}
+}
