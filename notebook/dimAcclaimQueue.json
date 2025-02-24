@@ -16,7 +16,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "ddf04baa-aaed-4c69-bcd0-97915398362a"
+				"spark.autotune.trackingId": "d282c3c2-9080-453a-bbb0-dd236ec04ddb"
 			}
 		},
 		"metadata": {
@@ -42,7 +42,7 @@
 					}
 				},
 				"source": [
-					"# Load Dimension\r\n",
+					"# Load Dimension dimAcclaimQueue\r\n",
 					"This notebook takes a Spark Temp Table and a few parameters and dynamically updates a Dimension in the Lakehouse layer of the datalake. Currently Type 1 & Type 2 SCDs are supported. The Lakehouse layer is accessible from the Lake database in Synapse."
 				]
 			},
@@ -139,39 +139,17 @@
 				"source": [
 					"\r\n",
 					"# Example Parameters:\r\n",
-					"dimensionType = 2\r\n",
+					"dimensionType = 1\r\n",
 					"databaseName = 'gold'\r\n",
 					"schemaName = \"Dim\"\r\n",
-					"tableName = \"AcclaimUser\"\r\n",
-					"surrogateKey = \"UserSK\"\r\n",
+					"tableName = \"AcclaimQueue\"\r\n",
+					"surrogateKey = \"SK_Queue\"\r\n",
 					"surrogateKeyIsIdentity = False\r\n",
-					"naturalKeyColumnList = [\"UserID\"]\r\n",
+					"naturalKeyColumnList = [\"QueueId\"]\r\n",
 					"unknownNaturalKeyList = [-1]\r\n",
-					"sqlQuery = ''"
+					"sqlQuery = \"SELECT QueueId, Name FROM silver.acclaim_dbo_tblqueue\""
 				],
 				"execution_count": 90
-			},
-			{
-				"cell_type": "code",
-				"metadata": {
-					"jupyter": {
-						"source_hidden": false,
-						"outputs_hidden": false
-					},
-					"nteract": {
-						"transient": {
-							"deleting": false
-						}
-					}
-				},
-				"source": [
-					"naturalKeyColumnList = eval(naturalKeyColumnList)\r\n",
-					"unknownNaturalKeyList = eval(unknownNaturalKeyList)\r\n",
-					"print(naturalKeyColumnList)\r\n",
-					"print(unknownNaturalKeyList)\r\n",
-					"sqlQuery = sqlQuery.replace(\"[tm]\",\"'\")"
-				],
-				"execution_count": null
 			},
 			{
 				"cell_type": "code",
