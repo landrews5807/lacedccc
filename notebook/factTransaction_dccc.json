@@ -1,0 +1,391 @@
+{
+	"name": "factTransaction_dccc",
+	"properties": {
+		"nbformat": 4,
+		"nbformat_minor": 2,
+		"bigDataPool": {
+			"referenceName": "sparkpoolsm",
+			"type": "BigDataPoolReference"
+		},
+		"sessionProperties": {
+			"driverMemory": "28g",
+			"driverCores": 4,
+			"executorMemory": "28g",
+			"executorCores": 4,
+			"numExecutors": 2,
+			"conf": {
+				"spark.dynamicAllocation.enabled": "false",
+				"spark.dynamicAllocation.minExecutors": "2",
+				"spark.dynamicAllocation.maxExecutors": "2",
+				"spark.autotune.trackingId": "e4b9b70b-c303-4b6a-8760-7714b0538747"
+			}
+		},
+		"metadata": {
+			"saveOutput": true,
+			"enableDebugMode": false,
+			"kernelspec": {
+				"name": "synapse_pyspark",
+				"display_name": "Synapse PySpark"
+			},
+			"language_info": {
+				"name": "python"
+			},
+			"a365ComputeOptions": {
+				"id": "/subscriptions/1a8f2456-71f5-4894-9064-fbbd6756370d/resourceGroups/rg_lace/providers/Microsoft.Synapse/workspaces/synlacedccc/bigDataPools/sparkpoolsm",
+				"name": "sparkpoolsm",
+				"type": "Spark",
+				"endpoint": "https://synlacedccc.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/sparkpoolsm",
+				"auth": {
+					"type": "AAD",
+					"authResource": "https://dev.azuresynapse.net"
+				},
+				"sparkVersion": "3.4",
+				"nodeCount": 10,
+				"cores": 4,
+				"memory": 28,
+				"automaticScaleJobs": false
+			},
+			"sessionKeepAliveTimeout": 30
+		},
+		"cells": [
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# Load Fact\r\n",
+					"This notebook takes a Spark Temp Table and a few parameters and dynamically updates a Fact in the Serverless SQL database (Gold layer)."
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"from pyspark.sql.functions import *\r\n",
+					"from delta.tables import DeltaTable"
+				],
+				"execution_count": 38
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"%run common_transformations"
+				],
+				"execution_count": 39
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": false
+				},
+				"source": [
+					"# Example Parameters:\r\n",
+					"databaseName = 'gold'\r\n",
+					"schemaName = \"Fact\"\r\n",
+					"tableName = \"Transaction\"\r\n",
+					"surrogateKey = \"SK_Transaction\"\r\n",
+					"naturalKeyColumnList = [\"TransactionId\"]\r\n",
+					"isIncrementalLoad = True\r\n",
+					"incrementalColumn = \"ModifyDate\"\r\n",
+					"\r\n",
+					"# Setup for Max Date variable.  \r\n",
+					"df_etl = spark.sql(f\"SELECT max(ModifyDate) as MaxDate FROM {databasename}.{schemaName}{tableName}\")\r\n",
+					"maxDate = df_etl.collect()[0].MaxDate\r\n",
+					"\r\n",
+					"print(sqlQuery)\r\n",
+					"print(maxDate)"
+				],
+				"execution_count": 40
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"sparkTableName = f\"{schemaName}_{tableName}\"\r\n",
+					"print(\"SparkTableName: \", sparkTableName)\r\n",
+					"\r\n",
+					"if \"maxDate\" not in locals() and \"maxDate\" not in globals():\r\n",
+					"    maxDate = '1900-01-01'"
+				],
+				"execution_count": 41
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"# Assign additional variables\r\n",
+					"targetContainer = 'fs-analyticsdev'\r\n",
+					"#storageAccountName = mssparkutils.credentials.getSecretWithLS(\"ls_keyvault\", \"kv-datalake-storage-account-name\")\r\n",
+					"storageAccountName = \"dlsdccanalyticsdev\"\r\n",
+					"targetDirectory = f'{databaseName}/{schemaName}/{tableName}'\r\n",
+					"targetTableFullPath = 'abfss://' + targetContainer + \"@\" + storageAccountName + \".dfs.core.windows.net/\" + targetDirectory\r\n",
+					"metadataColumns = [\"ETLRowValueHash\", \"ETLKeyHash\", \"ETLRowInsertedDatetime\", \"ETLRowUpdatedDatetime\"]\r\n",
+					"metadataColumns.extend(naturalKeyColumnList)\r\n",
+					"fullTableName = schemaName + '_' + tableName\r\n",
+					"stagingTableName = 'staging_' + schemaName + tableName\r\n",
+					"\r\n",
+					"print(\"TargetDirectory: \", targetDirectory)\r\n",
+					"print(\"FullTableName: \", fullTableName)"
+				],
+				"execution_count": 42
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": false
+				},
+				"source": [
+					"# Generate hash values for each row\r\n",
+					"# Add ETL Metadata Columns for each row. \r\n",
+					"from datetime import datetime\r\n",
+					"from pyspark.sql.functions import col\r\n",
+					"from delta.tables import *\r\n",
+					"\r\n",
+					"timestamp = datetime.now().strftime(\"%Y-%m-%d %H:%M:%S\")\r\n",
+					"\r\n",
+					"sourceDf = spark.sql(sparkTableName)\r\n",
+					"\r\n",
+					"exists = DeltaTable.isDeltaTable(spark, targetTableFullPath)\r\n",
+					"hashColumns = [x for x in sourceDf.columns if x not in metadataColumns]\r\n",
+					"\r\n",
+					"sourceDf = sourceDf.transform(with_4Fact_columns, naturalKeyColumnList, hashColumns, timestamp)\r\n",
+					"\r\n",
+					"display(sourceDf.limit(5))\r\n",
+					"    "
+				],
+				"execution_count": 43
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"sqlQuery = \"SELECT t.TransactionId, t.TypeEnum, t.CashierDate, \\\r\n",
+					"date_format(to_timestamp(t.CashierDate, \\\"yyyy-MM-dd HH:mm:ss\\\"), \\\"yyyyMMdd\\\") AS CashierDateKey, \\\r\n",
+					"date_format(to_timestamp(t.CashierDate, \\\"yyyy-MM-dd HH:mm:ss\\\"), \\\"HHmmss\\\") CashierTimeKey, \\\r\n",
+					"t.CashierBy,u1.SK_User AS SK_UserCashierBy, date_format(to_timestamp(t.RecordDate, \\\"yyyy-MM-dd HH:mm:ss\\\"), \\\"yyyyMMdd\\\") \\\r\n",
+					"AS RecordDateKey, date_format(to_timestamp(t.RecordDate, \\\"yyyy-MM-dd HH:mm:ss\\\"), \\\"HHmmss\\\") AS RecordTimeKey, \\\r\n",
+					"date_format(to_timestamp(t.VerifyDate, \\\"yyyy-MM-dd HH:mm:ss\\\"), \\\"yyyyMMdd\\\") AS VerifyDateKey, \\\r\n",
+					"date_format(to_timestamp(t.VerifyDate, \\\"yyyy-MM-dd HH:mm:ss\\\"), \\\"HHmmss\\\") AS VerifyTimeKey, \\\r\n",
+					"sc1.SK_SourceCode, sc2.SK_SourceCode AS SK_SourceCodeReturnCode, a2.SK_Agent AS SK_AgentIncoming, \\\r\n",
+					"a1.SK_Agent AS SK_AgentOutgoing, t.CreateBy, u2.SK_User AS SK_UserCreateBy, \\\r\n",
+					"date_format(to_timestamp(t.CreateDate, \\\"yyyy-MM-dd HH:mm:ss\\\"), \\\"yyyyMMdd\\\") AS CreateDateKey, \\\r\n",
+					"date_format(to_timestamp(t.CreateDate, \\\"yyyy-MM-dd HH:mm:ss\\\"), \\\"HHmmss\\\") AS CreateTimeKey,t.CreateDate, \\\r\n",
+					"u3.SK_User AS SK_UserModifyBy, date_format(to_timestamp(t.ModifyDate, \\\"yyyy-MM-dd HH:mm:ss\\\"), \\\"yyyyMMdd\\\") \\\r\n",
+					"AS ModifyDateKey, date_format(to_timestamp(t.ModifyDate, \\\"yyyy-MM-dd HH:mm:ss\\\"), \\\"HHmmss\\\") AS ModifyTimeKey, \\\r\n",
+					"t.ModifyDate, t.IsERecord, t.NumberOfRecordableItems, t.BranchID, b.SK_Branch, CASE WHEN t.SourceCode = \\\r\n",
+					"'Accounting' THEN sc2.SK_SourceCode ELSE sc1.SK_SourceCode END AS DeliveryMethod, 'Acclaim' AS VendorName \\\r\n",
+					"FROM silver.acclaim_dbo_tbltransaction t \\\r\n",
+					"INNER JOIN gold.dim_branch b ON b.BranchId = t.BranchId AND b.VendorName = 'Acclaim' \\\r\n",
+					"INNER JOIN gold.dim_agent a1 ON a1.AgentId = t.OutgoingAgentId AND a1.VendorName = 'Acclaim'  \\\r\n",
+					"INNER JOIN gold.dim_agent a2 ON a2.AgentId = t.IncomingAgentId AND a2.VendorName = 'Acclaim'  \\\r\n",
+					"INNER JOIN gold.dim_user u1 ON u1.Username = t.CashierBy AND u1.ETLRowIsActive = 1 AND u1.VendorName = 'Acclaim' \\\r\n",
+					"INNER JOIN gold.dim_user u2 ON u2.UserName = t.CreateBy AND u1.ETLRowIsActive = 1 AND u1.VendorName = 'Acclaim' \\\r\n",
+					"INNER JOIN gold.dim_user u3 ON u3.UserName = t.ModifyBy AND u1.ETLRowIsActive = 1 AND u1.VendorName = 'Acclaim' \\\r\n",
+					"INNER JOIN gold.dim_sourcecode sc1 ON sc1.Code = t.SourceCode AND sc1.VendorName = 'Acclaim' \\\r\n",
+					"INNER JOIN gold.dim_sourcecode sc2 ON sc2.Code = t.ReturnCode AND sc2.VendorName = 'Acclaim'\""
+				],
+				"execution_count": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# Read target table, add Surrogate Key to Source Dataframe.\r\n",
+					"allColumns = [x for x in sourceDf.columns]\r\n",
+					"\r\n",
+					"# If table exists, get surrogate key values for existing rows and generate surrogate key value for new rows\r\n",
+					"if exists:\r\n",
+					"    # If source table is incremental, only select rows which have been updated/new inserts.\r\n",
+					"    if isIncrementalLoad:\r\n",
+					"        targetDf = spark.sql(f\"{sqlQuery} WHERE {incrementalColumn} >= '{maxDate}'\")\r\n",
+					"\r\n",
+					"    else:\r\n",
+					"        targetDf = spark.read.format(\"delta\").load(targetTableFullPath)\r\n",
+					"\r\n",
+					"    targetDf.createOrReplaceTempView('targetDf')   \r\n",
+					"    maxSK = spark.sql(f\"SELECT MAX({surrogateKey}) AS LastSK FROM targetDf\").first()[0]\r\n",
+					"    sourceDf = sourceDf.join(targetDf, how='left_anti', on=['ETLRowValueHash', 'ETLKeyHash'])\r\n",
+					"    sourceDf = sourceDf.alias('src').join(targetDf.alias('tgt'), on='ETLKeyHash', how='left').select(col(f\"tgt.{surrogateKey}\"), 'src.*')\r\n",
+					"    sourceDf = sourceDf.withColumn(surrogateKey, coalesce(surrogateKey, expr(f'ROW_NUMBER() OVER (ORDER BY ETLKeyHash) + {maxSK}')))\r\n",
+					"    sourceDf = sourceDf.select(col(surrogateKey), *allColumns)\r\n",
+					"\r\n",
+					"# If table does not exist, generate surrogate key values for every row\r\n",
+					"else:\r\n",
+					"    sourceDf.createOrReplaceTempView(\"sourceTemp\")\r\n",
+					"    sourceDf = spark.sql(f\"SELECT *, ROW_NUMBER() OVER (ORDER BY ETLKeyHash) AS {surrogateKey} FROM sourceTemp\")\r\n",
+					"    sourceDf = sourceDf.select(col(surrogateKey), *allColumns)\r\n",
+					"    \r\n",
+					"sourceDf.createOrReplaceTempView(stagingTableName)"
+				],
+				"execution_count": 44
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# Setup the update field list to include all columns except ETLRowInsertedDatetime\r\n",
+					"updateTargetColumns = [x for x in sourceDf.columns if x not in ['ETLRowInsertedDatetime']]\r\n",
+					"updateSourceColumns = [f\"src.{x}\" for x in sourceDf.columns if x not in ['ETLRowInsertedDatetime']]\r\n",
+					"updateDictionary = dict(zip(updateTargetColumns, updateSourceColumns))"
+				],
+				"execution_count": 45
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"createQuery = \"\"\"CREATE TABLE IF NOT EXISTS {3}.{0} \r\n",
+					"USING DELTA\r\n",
+					"LOCATION '{1}'\r\n",
+					"TBLPROPERTIES(delta.enableChangeDataFeed = True)\r\n",
+					"AS\r\n",
+					"SELECT * FROM {2} WHERE 1 = 0\"\"\".format(fullTableName, targetTableFullPath, stagingTableName, databaseName)\r\n",
+					"\r\n",
+					"spark.sql(createQuery)"
+				],
+				"execution_count": 46
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# Merge into target table\r\n",
+					"targetTable = DeltaTable.forPath(spark, targetTableFullPath)\r\n",
+					"\r\n",
+					"(\r\n",
+					"    targetTable.alias('tgt') \r\n",
+					"        .merge( \r\n",
+					"            sourceDf.alias('src'),\r\n",
+					"            'tgt.ETLKeyHash = src.ETLKeyHash and tgt.ETLRowValueHash != src.ETLRowValueHash' \r\n",
+					"        ) \r\n",
+					"        .whenMatchedUpdate(set = updateDictionary\r\n",
+					"        )\r\n",
+					"        .whenNotMatchedInsertAll()\r\n",
+					"        .execute()\r\n",
+					")"
+				],
+				"execution_count": 47
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"#### The below code supports creating a serverless view on top of the delta table. This can be utilized in the future to support row-level security."
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# Create a Serverless View on top of the Delta Table (requires database and external data source to exist)\r\n",
+					"#createSchemaQuery = f\"IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = '{schemaName}') EXEC('CREATE SCHEMA {schemaName}');\"\r\n",
+					"#print(createSchemaQuery)\r\n",
+					"#execute_serverless_command(createSchemaQuery)\r\n",
+					"\r\n",
+					"# Using 'datalake_msi' datasource which uses the Managed Identity credential. Use 'datalake' for passthrough authentication.\r\n",
+					"#createViewQuery = f\"CREATE OR ALTER VIEW {schemaName}.{tableName} AS SELECT * FROM OPENROWSET(BULK '/{targetDirectory}', DATA_SOURCE = 'datalake_msi', FORMAT = 'DELTA') AS [{tableName}];\"\r\n",
+					"#print(createViewQuery)\r\n",
+					"#execute_serverless_command(createViewQuery)"
+				],
+				"execution_count": 48
+			}
+		]
+	}
+}
